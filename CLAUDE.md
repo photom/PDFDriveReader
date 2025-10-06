@@ -1,6 +1,3 @@
-# Bootstrap your project memory
-claude -p "Bootstrap a CLAUDE.md for my codebase"
-
 # Project Memory
 
 See @README.md for an overview.
@@ -20,3 +17,8 @@ See @README.md for an overview.
     - Read all documents, chapters 1-6.
   - https://developer.android.com/privacy-and-security/security-tips
     - Read all documents under "For app developers" and the linked resources.
+- Style guide must be followed:
+  - https://developer.android.com/kotlin/style-guide
+    - Read all documents.
+  - https://google.github.io/styleguide/javaguide.html
+    - Read all documents, chapters 1-7.
