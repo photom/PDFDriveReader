@@ -77,7 +77,7 @@ graph TD
 
 ---
 
-## 3. Menus & Dialogs
+## 3. Navigation & Utilities
 
 ### Reader Mode Menu
 Appears in the top-right corner when the menu icon is tapped.
@@ -89,32 +89,6 @@ graph TD
         Direction["Reading Direction >"]
         Bookmarks["Bookmarks"]
         Settings["Settings"]
-    end
-```
-
-### Reading Direction Selection
-...
-
----
-
-## 4. Additional Views
-
-### Settings Screen
-Global preferences for the application.
-
-```mermaid
-graph TD
-    subgraph Settings_View
-        TopBar["[ Back ]  Settings"]
-        General["General
-        - Default Reading Mode (Dropdown)
-        - Theme (Light/Dark/System)"]
-        Storage["Storage
-        - Clear Cache
-        - Local Scanning Frequency"]
-        About["About
-        - Version 1.0.0
-        - Licenses"]
     end
 ```
 
@@ -136,6 +110,25 @@ graph TD
     end
 ```
 
+### Settings Screen
+Global preferences for the application.
+
+```mermaid
+graph TD
+    subgraph Settings_View
+        TopBar["[ Back ]  Settings"]
+        General["General
+        - Default Reading Mode (Dropdown)
+        - Theme (Light/Dark/System)"]
+        Storage["Storage
+        - Clear Cache
+        - Local Scanning Frequency"]
+        About["About
+        - Version 1.0.0
+        - Licenses"]
+    end
+```
+
 ### Onboarding & Permissions
 The first-run experience explaining why the app needs storage access.
 
@@ -152,8 +145,7 @@ graph TD
 
 ---
 
-## 5. Interaction Specs (UX)
-...
+## 4. Interaction Specs (UX)
 
 | Component | Interaction | Visual Feedback |
 | --- | --- | --- |
@@ -162,6 +154,8 @@ graph TD
 | **PDF Page** | Double Tap | Reset Zoom to 100% (Animated) |
 | **Scrollbar** | Drag | Haptic feedback on page change |
 | **Sync Icon** | Visible | Rotating animation (Indeterminate) |
+
+---
 
 ## 5. Transition Animations
 Consistent motion is used to guide the user's focus and reinforce the reading direction.
@@ -172,6 +166,8 @@ Consistent motion is used to guide the user's focus and reinforce the reading di
   - **Toggle Action**: The Top Bar and Bottom Progress Bar use a **Fade-In / Fade-Out** combined with a **Vertical Slide** (8dp) for a "floating" appearance.
 - **Mode Transition**: 
   - **Library to Reader**: **Shared Element Transition** on the PDF thumbnail or an **Expand** animation originating from the tapped list item.
+
+---
 
 ## 6. Theme & Visual Style (Material 3)
 The app uses **Material Design 3** with support for **Dynamic Color** (Android 12+) and a dedicated dark mode.
@@ -191,7 +187,9 @@ The app uses **Material Design 3** with support for **Dynamic Color** (Android 1
 | **RTL** | `auto_stories` (Right-to-Left) | Book icon flipped or multi-story. |
 | **TTB** | `article` or `expand_more` | Vertical document flow icon. |
 
-## Layout Grid & Spacing (M3)
+---
+
+## 7. Layout Grid & Spacing (M3)
 - **Margins**: 16dp (Screen edges)
 - **Padding**: 8dp (Between list items)
 - **Touch Targets**: All buttons/icons are minimum 48x48dp.
