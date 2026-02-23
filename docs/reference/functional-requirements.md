@@ -2,6 +2,21 @@
 
 ## Core Operations
 
+### Mode & UI State Management
+
+#### 1. Application State
+The app must persist and track which mode is active (**Library** vs. **Reader**).
+- If the app is closed while in Reader Mode, it must relaunch directly into Reader Mode for the last opened document (Session Restore).
+
+#### 2. Reader Mode UI Visibility (Immersive)
+To provide a distraction-free experience:
+- **Default State**: Upon opening a document, the UI overlay (Menu button, Page indicators) must be hidden.
+- **Toggle Logic**:
+  - If the UI is **hidden**: A single tap on the display area must **show** the UI.
+  - If the UI is **visible**: A single tap on the display area (outside of menu interactive elements) must **hide** the UI.
+- **Timeout**: (Optional) The UI overlay may automatically hide after 5 seconds of inactivity.
+- **Gesture Conflict**: The app must distinguish between a **Single Tap** (UI toggle) and a **Scroll/Pinch** (Navigation). Taps on links within the PDF must prioritize link navigation over UI toggling.
+
 ### Document Discovery & Library Management
 The application must maintain an up-to-date list of PDF files from two primary sources:
 

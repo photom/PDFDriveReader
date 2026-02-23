@@ -19,8 +19,12 @@ Implementations of the domain interfaces.
 
 ### 3. Presentation Layer (Jetpack Compose)
 Modern declarative UI.
-- **ViewModels**: Coordinate library synchronization and maintain list states.
-- **UI Components**: Reading views and a tabbed Library view (Local vs. Cloud).
+- **ViewModels**: 
+  - Coordinate library synchronization and maintain list states.
+  - Manage **Immersive UI State** in Reader Mode, handling the visibility toggle of the menu overlay based on user input events.
+- **UI Components**: 
+  - **LibraryView**: Tabbed navigation for Local and Cloud sources.
+  - **ReaderView**: Immersive PDF rendering with a toggleable Overlay for controls.
 
 ## Key Design Patterns
 - **Repository Pattern**: Abstracts the source of PDF data (Local vs. Drive).

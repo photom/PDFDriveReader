@@ -1,28 +1,30 @@
 # User Interface Specification
 
-## Core Components
-- **Renderer**: Uses the native Android `PdfRenderer`.
-- **Menu**: Accessible via a button in the top-right corner.
-  - Action: `My Library` (Navigates to the document listing).
-  - Action: `Reading Direction` (Selection list).
+## Application Modes
 
-## Library View (PDF Selection)
-The library is the central hub for managing and selecting documents.
-- **Tabs/Sections**:
-  - **Local Storage**: Displays all PDF files found on the device.
-  - **Google Drive**: Displays PDF files synced from the user's Google Drive account.
-- **List Item Details**:
-  - **File Name**: Primary title of the document.
-  - **Location Path**: 
-    - *Local*: The directory path (e.g., `/Documents/Books/`).
-    - *Google Drive*: The folder breadcrumb or parent folder name.
-- **Search/Filter**: (Optional) Ability to search for files by name.
+### 1. Library Mode (Document Selection)
+The entry point of the application, used for browsing and selecting PDFs.
+- **Views**: Local Storage list and Google Drive list.
+- **Top Bar**: Always visible, containing a search icon and app title.
+- **List Item Details**: Displays **File Name** and **Location Path**.
+
+### 2. Reader Mode (PDF Viewing)
+A distraction-free environment for document consumption.
+- **Immersive View**: By default, the UI (including the top bar and menu button) is **hidden** to maximize the reading area.
+- **Menu Interaction**:
+  - **Show Menu**: A single tap on the document area while the UI is hidden reveals the **Menu Icon** (top-right).
+  - **Hide Menu**: A single tap on the document area while the UI is visible hides the **Menu Icon** and overlays.
+  - **Menu Actions**: `Close Reader` (return to Library), `Reading Direction`, and `Bookmarks`.
 
 ## Interaction Models
 | Feature | Behavior |
 | --- | --- |
-| Library Selection | Tapping a list item opens the PDF in the reader. |
-| Scroll | Swipe gestures in both the list and reader views. |
+| Mode Transition | Tapping a PDF in Library Mode opens Reader Mode. |
+| UI Visibility | In Reader Mode, a single tap toggles the menu/UI overlay (Show if hidden, Hide if shown). |
+| Scroll | Swipe gestures in both modes. |
+| Zoom | Pinch gestures in Reader Mode (100% - 500%). |
+| Zoom Reset | Double-tap in Reader Mode to 100%. |
+
 | Zoom | Pinch gestures (100% - 500%). |
 | Zoom Reset | Double-tap to 100%. |
 | Navigation History | Link jumps save the previous position; swipe back to return. |
