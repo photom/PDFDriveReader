@@ -5,7 +5,10 @@
 ### 1. Library Mode (Document Selection)
 The entry point of the application, used for browsing and selecting PDFs.
 - **Views**: Local Storage list and Google Drive list.
-- **Top Bar**: Always visible, containing a search icon and app title.
+- **Top Bar**: Always visible.
+  - **App Title**: Left-aligned.
+  - **Search Icon**: For filtering the list.
+  - **Syncing Icon**: A rotating or pulsing indicator shown in the top bar **only** when a Google Drive sync is in progress.
 - **List Item Details**: Displays **File Name** and **Location Path**.
 
 ### 2. Reader Mode (PDF Viewing)
@@ -39,6 +42,9 @@ A distraction-free environment for document consumption.
 - **Persistence**: Visible during scroll + 2-second delay after gesture completion.
 
 ## Persistence & State
-- **Last File**: Automatically opens the previously viewed PDF on app launch.
-- **Last Position**: Navigates to the exact page where the user left off.
-- **Cache**: Stores file path, name, and current page in an SQLite database.
+- **Last Active Mode**: The application must remember whether it was in **Library Mode** or **Reader Mode** when last closed.
+  - If closed in **Library Mode**, it must relaunch into the document list.
+  - If closed in **Reader Mode**, it must relaunch directly into the last viewed document at the specific page.
+- **Last File**: Automatically opens the previously viewed PDF if Reader Mode is the active mode on launch.
+- **Last Position**: Navigates to the exact page where the user left off in Reader Mode.
+- **Cache**: Stores active mode, file path, name, and current page in an SQLite database.

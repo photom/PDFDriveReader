@@ -12,15 +12,15 @@ Contains the core business logic and entities.
 
 ### 2. Data Layer
 Implementations of the domain interfaces.
-- **SQLite (Room)**: Persistent storage for reading sessions, document metadata, and a cached index of the Library (Local + Drive) for instant loading.
+- **SQLite (Room)**: Persistent storage for reading sessions, document metadata, and a cached index of the Library.
+- **Background Sync Engine**: Orchestrates background tasks (e.g., using `WorkManager`) for Google Drive metadata fetching without blocking the UI.
 - **PDF Core**: Integration with Android's `PdfRenderer`.
-- **Local Scanner**: Uses `MediaStore` or `File` APIs to index documents.
-- **Drive Integration**: Handling list queries and remote streaming from Google Drive.
 
 ### 3. Presentation Layer (Jetpack Compose)
 Modern declarative UI.
 - **ViewModels**: 
-  - Coordinate library synchronization and maintain list states.
+  - Observe background sync status to toggle the **Syncing Icon** visibility in Library Mode.
+  - Automatically refresh UI lists when the background indexer updates the SQLite cache.
   - Manage **Immersive UI State** in Reader Mode, handling the visibility toggle of the menu overlay based on user input events.
 - **UI Components**: 
   - **LibraryView**: Tabbed navigation for Local and Cloud sources.
