@@ -7,23 +7,23 @@ The entry point of the application, used for browsing and selecting PDFs.
 - **Views**: Local Storage list and Google Drive list.
 - **Top Bar**: Always visible.
   - **App Title**: Left-aligned.
-  - **Search Icon**: Reveals a real-time filter bar for the current list.
+  - **Search Icon**: Reveals a filter bar that searches within the **currently active tab** (Local or Cloud).
   - **Syncing Icon**: Shown only during active background sync.
-- **Google Drive Tab**: 
-  - **Unauthenticated State**: Shows a "Sign in with Google" button and an explanation.
-  - **Authenticated State**: Shows the list of cloud PDFs and a "Sign Out" option in the menu.
-- **List Item Details**: Displays **File Name** and **Location Path**.
+- **Sorting**: By default, lists are sorted by **Last Modified/Opened** (newest first).
+- **Google Drive Tab**: ...
 
 ### 2. Reader Mode (PDF Viewing)
 A distraction-free environment for document consumption.
 - **Immersive View**: UI hidden by default.
-- **Menu Interaction**: 
-  - **Show Menu**: A single tap while UI is hidden.
-  - **Hide Menu**: A single tap while UI is visible.
+- **Scroll Physics**:
+  - **LTR / RTL**: **Paginated** (snaps to page boundaries) to simulate a physical book.
+  - **TTB**: **Continuous** scrolling for a vertical document flow.
+- **Page Indicators**: Displayed as "Page [Current] of [Total]" using **1-indexed** numbering (e.g., Page 1 of 50).
+- **Menu Interaction**: ...
 - **Back Navigation**: 
-  - If **UI is visible**: System Back hides the UI overlay.
-  - If **UI is hidden**: System Back exits to Library Mode.
-- **Menu Actions**: `Close Reader`, `Reading Direction`, and `Bookmarks`.
+  - If **Link History exists**: System Back returns to the previous position.
+  - If **Link History is empty** and **UI is visible**: System Back hides the UI overlay.
+  - If **Link History is empty** and **UI is hidden**: System Back exits to Library Mode.
 
 ## Interaction Models
 | Feature | Behavior |

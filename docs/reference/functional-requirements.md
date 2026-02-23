@@ -13,8 +13,9 @@ The app must persist the active mode (**Library** vs. **Reader**) across session
 - **Default State**: UI overlay hidden.
 - **Toggle Logic**: Single tap toggles the UI.
 - **Back Navigation Logic**:
-  - `onBackPressed` while UI is visible -> `Hide UI overlay`.
-  - `onBackPressed` while UI is hidden -> `Exit to Library Mode`.
+  - `onBackPressed` while **Link History** exists -> `Pop History & Jump back`.
+  - `onBackPressed` while **UI is visible** (and history is empty) -> `Hide UI overlay`.
+  - `onBackPressed` while **UI is hidden** (and history is empty) -> `Exit to Library Mode`.
 - **Gesture Conflict**: The app must distinguish between a **Single Tap** (UI toggle) and a **Scroll/Pinch** (Navigation). Taps on links within the PDF must prioritize link navigation over UI toggling.
 
 ### Document Discovery & Library Management
