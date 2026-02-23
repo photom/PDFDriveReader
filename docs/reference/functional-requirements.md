@@ -60,6 +60,18 @@ To prevent memory leaks and file handle exhaustion:
   - A new document is opened, replacing the current one.
 - **Safety**: Use `try-finally` blocks or Kotlin's `.use {}` extension to ensure `close()` is called even if rendering fails.
 
+### High-Zoom Rendering (Tiling Strategy)
+To support 100%-500% zoom without `OutOfMemory` errors:
+- **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution.
+- **Tiling**: For zoom levels > 200%, the renderer must split the page into **tiles** (e.g., 512x512px) and only render the tiles currently visible in the viewport.
+- **Bitmap Pooling**: Reuse `Bitmap` objects using a `BitmapPool` to reduce Garbage Collection (GC) pressure.
+
+### Thumbnail Generation
+For the Library Mode UI:
+- **Lazy Generation**: Generate a 128dp x 128dp thumbnail of the first page when a document is first discovered.
+- **Disk Cache**: Store thumbnails in the app's internal `cache` directory, indexed by the `file_uri`.
+- **Cleanup**: Delete thumbnails if the document is removed from the SQLite cache.
+
 ### Search & Filtering Logic
 The Library search functionality must follow these rules:
 - **Scope**: Filters the currently active tab list (Local or Cloud).
@@ -67,6 +79,8 @@ The Library search functionality must follow these rules:
 - **Performance**: Filtering must be performed in real-time on the UI thread for small lists, or debounced (300ms) and offloaded to a background thread for lists exceeding 100 items.
 
 ### SQLite Cache Schema
+
+#### Document Table (`DOCUMENT_METADATA`)
 | Column | Description |
 | --- | --- |
 | `file_uri` | Persistent URI or Drive ID (Primary Key). |
@@ -75,3 +89,10 @@ The Library search functionality must follow these rules:
 | `reading_direction` | String (LTR, RTL, TTB). |
 | `zoom_level` | Float (e.g., 1.5 for 150%). |
 | `last_modified` | Timestamp for sorting recently opened files. |
+
+#### Navigation History Table (`NAV_HISTORY`)
+| Column | Description |
+| --- | --- |
+| `file_uri` | Foreign Key to DOCUMENT_METADATA. |
+| `page_index` | The page the user was on. |
+| `timestamp` | For stack ordering (LIFO). |

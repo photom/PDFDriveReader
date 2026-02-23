@@ -128,6 +128,24 @@ Consistent motion is used to guide the user's focus and reinforce the reading di
 - **Mode Transition**: 
   - **Library to Reader**: **Shared Element Transition** on the PDF thumbnail or an **Expand** animation originating from the tapped list item.
 
+## 6. Theme & Visual Style (Material 3)
+The app uses **Material Design 3** with support for **Dynamic Color** (Android 12+) and a dedicated dark mode.
+
+### Color Palette (Base)
+| Element | Light Mode | Dark Mode |
+| --- | --- | --- |
+| **Primary** | #6750A4 (Deep Purple) | #D0BCFF (Light Purple) |
+| **Surface** | #FFFBFE | #1C1B1F |
+| **On Surface** | #1C1B1F | #E6E1E5 |
+| **Accent** | #03DAC6 (Teal) | #03DAC6 (Teal) |
+
+### Reading Direction Icons
+| Mode | Icon (Material Symbols) | Description |
+| --- | --- | --- |
+| **LTR** | `menu_book` (Left-to-Right) | Standard book icon. |
+| **RTL** | `auto_stories` (Right-to-Left) | Book icon flipped or multi-story. |
+| **TTB** | `article` or `expand_more` | Vertical document flow icon. |
+
 ## Layout Grid & Spacing (M3)
 - **Margins**: 16dp (Screen edges)
 - **Padding**: 8dp (Between list items)

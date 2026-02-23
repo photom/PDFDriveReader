@@ -145,7 +145,19 @@ The system uses a **Result Pattern** to propagate errors from the Data layer to 
 - **RenderResult**: `Success(Bitmap)`, `Error(Exception)`.
   - *Error Types*: `InvalidPdf`, `FileLocked`, `OutOfMemory`.
 
-## 6. Interaction Summary
+## 6. Concurrency Strategy (Dispatchers)
+To maintain a 60FPS UI, the app follows a strict dispatcher mapping:
+- **Dispatchers.Main**: UI updates, Compose state transitions.
+- **Dispatchers.IO**: SQLite queries, File I/O, Network calls (Drive API).
+- **Dispatchers.Default**: PDF Rendering (CPU intensive), Bitmap processing, Thumbnail scaling.
+
+## 7. Memory Management Policy
+The app actively manages memory to prevent `OutOfMemory` errors during intensive reading:
+- **LruCache**: Bitmaps for the current page and 1 page ahead/behind are kept in an `LruCache` (max 25% of available heap).
+- **Purge Logic**: When a new document is opened, the previous document's `LruCache` is explicitly cleared.
+- **OnLowMemory**: The app observes `ComponentCallbacks2` and clears all bitmap caches when the system is low on memory.
+
+## 8. Interaction Summary
 1.  **Dependency Rule**: Dependencies only point inwards. The `Presentation` layer depends on `Domain`, and the `Data` layer depends on `Domain` (interfaces).
 2.  **Reactive Streams**: The `Data` layer exposes `Flow` objects from the SQLite cache, which the `Domain` use cases pass to the `ViewModels`. This ensures the UI is always in sync with the persistent state.
 3.  **Immersive State**: The `ReaderViewModel` holds the `isUiVisible` boolean state, which is toggled by user taps and used by the `ReaderView` to show/hide overlays.
