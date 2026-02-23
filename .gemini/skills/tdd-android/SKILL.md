@@ -67,6 +67,5 @@ This skill provides procedural knowledge for implementing and maintaining a comp
 ## References
 - See the `architectural-design` skill for visualizing the components and interactions being tested.
 - See the `ddd-clean-architecture` skill for designing testable, decoupled domain logic.
-- See the `kotlin` skill for coding conventions and test method naming (using backticks).
-- See the `android-implementation-standards` skill for commenting and documentation policies.
+- See the `kotlin-android-implementation` skill for unified coding conventions, test naming, and implementation policies.
 - See `docs/explanation/testing-strategy.md` for project-specific test implementations.
