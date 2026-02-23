@@ -49,10 +49,22 @@ Before opening any PDF file (from local or Drive), the app must validate the for
 - **Accounts**: Required for Google Sign-In and cloud synchronization.
 
 ### Per-Document Settings Persistence
-The app must maintain a unique configuration for every document opened:
-- **Reading Direction**: Persistent per-file. Default to `L-to-R`.
-- **Zoom Level**: Persistent per-file. Default to `100%`.
-- **Page Index**: Persistent per-file.
+...
+
+### Resource Management (PdfDocument Lifecycle)
+To prevent memory leaks and file handle exhaustion:
+- **Renderer Scope**: The `PdfRenderer` and its `ParcelFileDescriptor` must be strictly managed by the `ReaderViewModel`.
+- **Release Condition**: Resources must be released (closed) when:
+  - The user exits Reader Mode.
+  - The app is moved to the background for an extended period (via `onCleared` or `Lifecycle` observers).
+  - A new document is opened, replacing the current one.
+- **Safety**: Use `try-finally` blocks or Kotlin's `.use {}` extension to ensure `close()` is called even if rendering fails.
+
+### Search & Filtering Logic
+The Library search functionality must follow these rules:
+- **Scope**: Filters the currently active tab list (Local or Cloud).
+- **Matching**: Case-insensitive partial matching against both the **File Name** and the **Location Path**.
+- **Performance**: Filtering must be performed in real-time on the UI thread for small lists, or debounced (300ms) and offloaded to a background thread for lists exceeding 100 items.
 
 ### SQLite Cache Schema
 | Column | Description |

@@ -118,6 +118,16 @@ graph TD
 | **Scrollbar** | Drag | Haptic feedback on page change |
 | **Sync Icon** | Visible | Rotating animation (Indeterminate) |
 
+## 5. Transition Animations
+Consistent motion is used to guide the user's focus and reinforce the reading direction.
+- **Reading Directions**:
+  - **LTR / RTL**: **Horizontal Slide** animation. Pages slide in from the right (LTR) or left (RTL) with a subtle shadow overlay to simulate depth.
+  - **TTB**: **Smooth Vertical Scroll**. No discrete page transitions; the document flows as a single continuous canvas.
+- **UI Overlay**:
+  - **Toggle Action**: The Top Bar and Bottom Progress Bar use a **Fade-In / Fade-Out** combined with a **Vertical Slide** (8dp) for a "floating" appearance.
+- **Mode Transition**: 
+  - **Library to Reader**: **Shared Element Transition** on the PDF thumbnail or an **Expand** animation originating from the tapped list item.
+
 ## Layout Grid & Spacing (M3)
 - **Margins**: 16dp (Screen edges)
 - **Padding**: 8dp (Between list items)

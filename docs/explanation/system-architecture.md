@@ -132,7 +132,20 @@ classDiagram
     RoomPdfRepository --> PdfDocument : creates
 ```
 
-## 4. Interaction Summary
+## 4. Dependency Injection (DI) Strategy
+The system uses **Hilt** (built on Dagger) for dependency injection to ensure modularity and testability.
+- **Singletons**: `RoomDatabase`, `GoogleDriveService`, and `SyncEngine` are managed as singletons.
+- **Activity/ViewModel Scopes**: `PdfRepository` and `UseCases` are injected into ViewModels.
+- **Testing**: Hilt allows replacing real DataSources with `Mocks` or `Fakes` during UI and integration testing.
+
+## 5. Error Handling Model
+The system uses a **Result Pattern** to propagate errors from the Data layer to the UI.
+- **SyncResult**: `Success`, `Error(type, message)`, `Loading`.
+  - *Error Types*: `NetworkError`, `AuthExpired`, `QuotaExceeded`.
+- **RenderResult**: `Success(Bitmap)`, `Error(Exception)`.
+  - *Error Types*: `InvalidPdf`, `FileLocked`, `OutOfMemory`.
+
+## 6. Interaction Summary
 1.  **Dependency Rule**: Dependencies only point inwards. The `Presentation` layer depends on `Domain`, and the `Data` layer depends on `Domain` (interfaces).
 2.  **Reactive Streams**: The `Data` layer exposes `Flow` objects from the SQLite cache, which the `Domain` use cases pass to the `ViewModels`. This ensures the UI is always in sync with the persistent state.
 3.  **Immersive State**: The `ReaderViewModel` holds the `isUiVisible` boolean state, which is toggled by user taps and used by the `ReaderView` to show/hide overlays.
