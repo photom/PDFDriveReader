@@ -57,6 +57,19 @@ Tool: **Compose UI Test** / **Espresso**.
     - Close the app in Reader Mode.
     - Relaunch and verify it opens directly to the same page/zoom level.
 
+### Flow: Reader Interactions & Edge Cases
+1. **Orientation Change**:
+    - Open a PDF to page 15, rotate to Landscape.
+    - Verify the page remains at 15 and the UI overlay state (visible/hidden) is preserved.
+2. **Missing File**:
+    - Delete a PDF from storage manually.
+    - Tap the file in the app's Library.
+    - Verify an error SnackBar appears and the list entry is removed or marked "Unavailable."
+3. **Back Navigation**:
+    - Tap a link to jump to page 100.
+    - Swipe Back (system gesture).
+    - Verify it returns to the previous page (Link History) rather than exiting to the Library.
+
 ### Flow: Google Drive Integration
 1. **Sign-In**: Tap "Sign in with Google" and verify the authenticated state.
 2. **Syncing**: Trigger a refresh and verify the **Syncing Icon** appears.

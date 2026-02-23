@@ -50,5 +50,6 @@ A distraction-free environment for document consumption.
   - **Reading Direction**: (L-to-R, R-to-L, or T-to-B).
   - **Last Page**: The exact page index.
   - **Zoom Level**: The user's last used zoom percentage (e.g., 150%).
+- **Navigation History**: Link backstack is persisted across backgrounding but cleared when a different document is opened.
 - **Last File**: Automatically opens the previously viewed PDF if Reader Mode is the active mode on launch.
-- **Cache**: Stores active mode, file metadata, and settings in an SQLite database.
+- **Cache**: Stores active mode, file metadata (via `file_uri`), and settings in an SQLite database.

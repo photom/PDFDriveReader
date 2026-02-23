@@ -31,6 +31,13 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Filtering: Partial match on filename.
     - [ ] Filtering: Partial match on location path.
     - [ ] Formatting: Ignores case during matching.
+    - [ ] Edge Case: Returns all files for empty or whitespace-only queries.
+    - [ ] Edge Case: Correctly handles special regex characters (e.g., `*`, `?`, `[`) without crashing.
+
+- **`SyncEngine` (Concurrency & Edge Cases)**
+    - [ ] Race Condition: Concurrent local and cloud syncs do not duplicate database entries.
+    - [ ] Network Interruption: Sync gracefully stops and retains partial results if the connection is lost.
+    - [ ] Auth Revocation: If the token is revoked during a sync, the engine emits `AuthError` and clears sensitive credentials.
 
 ---
 

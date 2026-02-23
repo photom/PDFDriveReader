@@ -69,9 +69,9 @@ The Library search functionality must follow these rules:
 ### SQLite Cache Schema
 | Column | Description |
 | --- | --- |
-| `file_uri` | Persistent URI or Drive ID. |
+| `file_uri` | Persistent URI or Drive ID (Primary Key). |
 | `file_name` | The name of the document. |
 | `current_page` | The index of the last displayed page. |
 | `reading_direction` | String (LTR, RTL, TTB). |
 | `zoom_level` | Float (e.g., 1.5 for 150%). |
-| `last_modified` | Timestamp for sorting. |
+| `last_modified` | Timestamp for sorting recently opened files. |
