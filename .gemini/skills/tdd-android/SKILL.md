@@ -65,7 +65,8 @@ This skill provides procedural knowledge for implementing and maintaining a comp
     -   Continue this cycle until the Test List is empty.
 
 ## References
--   See the `architectural-design` skill for visualizing the components and interactions being tested.
--   See the `ddd-clean-architecture` skill for designing testable, decoupled domain logic.
--   See `docs/explanation/testing-strategy.md` for project-specific test implementations.
--   Kent Beck's Canon TDD: [https://substack.com/home/post/p-139601698](https://substack.com/home/post/p-139601698)
+- See the `architectural-design` skill for visualizing the components and interactions being tested.
+- See the `ddd-clean-architecture` skill for designing testable, decoupled domain logic.
+- See the `kotlin` skill for coding conventions and test method naming (using backticks).
+- See the `android-implementation-standards` skill for commenting and documentation policies.
+- See `docs/explanation/testing-strategy.md` for project-specific test implementations.
