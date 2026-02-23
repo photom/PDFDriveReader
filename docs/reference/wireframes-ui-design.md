@@ -93,22 +93,67 @@ graph TD
 ```
 
 ### Reading Direction Selection
-A sub-menu or dialog for choosing the layout.
+...
+
+---
+
+## 4. Additional Views
+
+### Settings Screen
+Global preferences for the application.
 
 ```mermaid
 graph TD
-    subgraph Direction_Dialog
-        Title["Reading Direction"]
-        LTR["( ) Left-to-Right"]
-        RTL["( ) Right-to-Left"]
-        TTB["( ) Top-to-Bottom"]
-        Cancel["[ Cancel ]"]
+    subgraph Settings_View
+        TopBar["[ Back ]  Settings"]
+        General["General
+        - Default Reading Mode (Dropdown)
+        - Theme (Light/Dark/System)"]
+        Storage["Storage
+        - Clear Cache
+        - Local Scanning Frequency"]
+        About["About
+        - Version 1.0.0
+        - Licenses"]
+    end
+```
+
+### Bookmarks View
+A list of saved positions within a specific document.
+
+```mermaid
+graph TD
+    subgraph Bookmarks_View
+        TopBar["[ Back ]  Bookmarks"]
+        List["(Scrollable List)
+        -----------------------
+        Page 12 - 'Chapter 2 Start'
+        -----------------------
+        Page 45 - 'Technical Spec'
+        -----------------------"]
+        Empty["(If no bookmarks)
+        'No bookmarks saved yet'"]
+    end
+```
+
+### Onboarding & Permissions
+The first-run experience explaining why the app needs storage access.
+
+```mermaid
+graph TD
+    subgraph Onboarding_View
+        Logo["[ App Icon ]"]
+        Welcome["Welcome to PDFDriveReader"]
+        Desc["To show your PDFs, we need access 
+        to your device storage."]
+        Action["[ GRANT ACCESS / GET STARTED ]"]
     end
 ```
 
 ---
 
-## 4. Interaction Specs (UX)
+## 5. Interaction Specs (UX)
+...
 
 | Component | Interaction | Visual Feedback |
 | --- | --- | --- |
