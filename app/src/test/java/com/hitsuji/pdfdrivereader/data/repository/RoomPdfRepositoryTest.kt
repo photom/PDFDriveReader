@@ -22,7 +22,7 @@ class RoomPdfRepositoryTest {
     private val scanner: LocalFileScanner = mock()
     private val renderer: PdfRendererWrapper = mock()
     private val driveService = FakeGoogleDriveService()
-    private val documentMapper = DocumentMapper()
+    private val documentMapper = DocumentMapper(scanner) // Added scanner here
     private val sessionMapper = ReadingSessionMapper()
     
     private val repository = RoomPdfRepository(

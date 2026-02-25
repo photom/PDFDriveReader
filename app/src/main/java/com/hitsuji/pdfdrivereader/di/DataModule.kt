@@ -60,7 +60,7 @@ abstract class DataModule {
 
         @Provides
         @Singleton
-        fun provideDocumentMapper(): DocumentMapper = DocumentMapper()
+        fun provideDocumentMapper(scanner: LocalFileScanner): DocumentMapper = DocumentMapper(scanner)
 
         @Provides
         @Singleton

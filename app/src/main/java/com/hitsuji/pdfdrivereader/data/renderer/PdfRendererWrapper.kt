@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
 import java.io.File
 
@@ -22,16 +23,24 @@ class PdfRendererWrapper {
      * @return A [PdfDocument] containing the page count and URI.
      */
     fun openDocument(file: File): PdfDocument {
-        val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        val renderer = PdfRenderer(pfd)
-        val pageCount = renderer.pageCount
-        renderer.close()
-        pfd.close()
-        
-        return PdfDocument(
-            id = file.absolutePath,
-            totalPageCount = pageCount
-        )
+        Log.d("PDFDriveReader", "PdfRenderer: Opening document ${file.absolutePath}")
+        var pfd: ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
+        try {
+            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            renderer = PdfRenderer(pfd)
+            val pageCount = renderer.pageCount
+            return PdfDocument(
+                id = file.absolutePath,
+                totalPageCount = pageCount
+            )
+        } catch (e: Exception) {
+            Log.e("PDFDriveReader", "PdfRenderer: Error opening document", e)
+            throw e
+        } finally {
+            renderer?.close()
+            pfd?.close()
+        }
     }
 
     /**
@@ -44,19 +53,26 @@ class PdfRendererWrapper {
      * @return A [Bitmap] of the rendered page.
      */
     fun renderPage(file: File, pageIndex: Int, width: Int, height: Int): Bitmap {
-        val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-        val renderer = PdfRenderer(pfd)
-        val page = renderer.openPage(pageIndex)
-        
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        bitmap.eraseColor(Color.WHITE)
-        
-        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-        
-        page.close()
-        renderer.close()
-        pfd.close()
-        
-        return bitmap
+        var pfd: ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
+        var page: PdfRenderer.Page? = null
+        try {
+            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            renderer = PdfRenderer(pfd)
+            page = renderer.openPage(pageIndex)
+            
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(Color.WHITE)
+            
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            return bitmap
+        } catch (e: Exception) {
+            Log.e("PDFDriveReader", "PdfRenderer: Error rendering page $pageIndex", e)
+            throw e
+        } finally {
+            page?.close()
+            renderer?.close()
+            pfd?.close()
+        }
     }
 }

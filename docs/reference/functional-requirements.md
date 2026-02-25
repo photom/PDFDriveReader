@@ -66,6 +66,7 @@ Since `PdfRenderer` requires local file access, documents from Google Drive must
 - **On-Demand Loading**: Downloading should be triggered when the user selects a cloud document in the Library.
 - **State Feedback**: The UI must show a "Downloading..." progress indicator during this phase.
 - **Persistence**: Materialized files should be kept in the cache until the space is needed, using the `file_uri` (Drive ID) as the filename.
+- **Cache Tracking**: The Library list must dynamically check for the existence of the cached file and mark the item as "Cached" in the UI.
 
 ### High-Zoom Rendering (Tiling Strategy)
 To support 100%-500% zoom without `OutOfMemory` errors:

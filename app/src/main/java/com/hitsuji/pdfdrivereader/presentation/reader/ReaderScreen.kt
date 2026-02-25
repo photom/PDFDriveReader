@@ -34,20 +34,17 @@ fun ReaderScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showDirectionDialog by remember { mutableStateOf(false) }
 
-    // Synchronize pager state with ViewModel state
     val pagerState = rememberPagerState(
         initialPage = state.currentPage,
         pageCount = { state.document?.totalPageCount ?: 0 }
     )
 
-    // Update ViewModel when user swipes
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage != state.currentPage) {
             viewModel.onPageChanged(pagerState.currentPage)
         }
     }
 
-    // Update Pager when state changes (e.g. from Slider)
     LaunchedEffect(state.currentPage) {
         if (pagerState.currentPage != state.currentPage) {
             pagerState.scrollToPage(state.currentPage)
@@ -59,7 +56,6 @@ fun ReaderScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // PDF Content with Paging
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -70,41 +66,56 @@ fun ReaderScreen(
                     viewModel.toggleUI()
                 }
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
-            } else {
-                when (state.direction) {
-                    ReadingDirection.LTR -> {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize()
-                        ) { pageIndex ->
-                            PdfPageDisplay(state, pageIndex)
+            when {
+                state.isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
+                }
+                state.errorMessage != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(state.errorMessage!!, color = Color.White)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { 
+                            state.document?.id?.let { viewModel.loadDocument(it) }
+                        }) {
+                            Text("Retry")
                         }
                     }
-                    ReadingDirection.RTL -> {
-                        // RTL in Compose Pager can be handled by reverseLayout or layoutDirection
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize(),
-                            reverseLayout = true
-                        ) { pageIndex ->
-                            PdfPageDisplay(state, pageIndex)
+                }
+                else -> {
+                    when (state.direction) {
+                        ReadingDirection.LTR -> {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize()
+                            ) { pageIndex ->
+                                PdfPageDisplay(state, pageIndex)
+                            }
                         }
-                    }
-                    ReadingDirection.TTB -> {
-                        VerticalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize()
-                        ) { pageIndex ->
-                            PdfPageDisplay(state, pageIndex)
+                        ReadingDirection.RTL -> {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize(),
+                                reverseLayout = true
+                            ) { pageIndex ->
+                                PdfPageDisplay(state, pageIndex)
+                            }
+                        }
+                        ReadingDirection.TTB -> {
+                            VerticalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize()
+                            ) { pageIndex ->
+                                PdfPageDisplay(state, pageIndex)
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Top Overlay
         AnimatedVisibility(
             visible = state.isUiVisible,
             enter = fadeIn() + slideInVertically(),
@@ -146,7 +157,6 @@ fun ReaderScreen(
             )
         }
 
-        // Bottom Overlay
         AnimatedVisibility(
             visible = state.isUiVisible,
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -194,8 +204,6 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Only show bitmap if it matches the current page we are rendering in the pager
-        // Note: For better UX, we should implement a per-page bitmap cache in ViewModel
         if (state.currentPage == pageIndex && state.currentPageBitmap != null) {
             androidx.compose.foundation.Image(
                 bitmap = state.currentPageBitmap.asImageBitmap(),
@@ -242,7 +250,6 @@ fun ReadingDirectionDialog(
             }
         },
         confirmButton = {
-            @Suppress("DEPRECATION")
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
@@ -253,35 +260,10 @@ fun ReadingDirectionDialog(
 fun ReaderScreenPreview() {
     PdfDriveReaderTheme {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
+            modifier = Modifier.fillMaxSize().background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
             Text("PDF CONTENT PREVIEW", color = Color.White)
-            
-            @OptIn(ExperimentalMaterial3Api::class)
-            TopAppBar(
-                title = { Text("Sample.pdf") },
-                navigationIcon = {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                }
-            )
-            
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Page 1 of 10")
-                    Slider(value = 0.1f, onValueChange = {})
-                }
-            }
         }
     }
 }

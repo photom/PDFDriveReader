@@ -1,8 +1,10 @@
 package com.hitsuji.pdfdrivereader.presentation.reader
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hitsuji.pdfdrivereader.domain.model.AppMode
 import com.hitsuji.pdfdrivereader.domain.model.PagePosition
 import com.hitsuji.pdfdrivereader.domain.model.ReadingDirection
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
@@ -42,25 +44,34 @@ class ReaderViewModel @Inject constructor(
      * @param uri The document unique identifier.
      */
     fun loadDocument(uri: String) {
+        Log.d("PDFDriveReader", "Reader: Loading document $uri")
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, errorMessage = null) }
             try {
                 val openedDoc = openDocumentUseCase(uri)
+                Log.d("PDFDriveReader", "Reader: Document opened. Count=${openedDoc.document.totalPageCount}, Direction=${openedDoc.direction}")
+                
                 _state.update { 
                     it.copy(
-                        isLoading = false,
                         document = openedDoc.document,
                         currentPage = openedDoc.position.pageIndex,
                         zoomLevel = openedDoc.position.zoomLevel,
                         direction = openedDoc.direction
                     )
                 }
+                
                 // Initial page load
                 loadPageBitmap(uri, openedDoc.position.pageIndex)
                 
                 // Persist session
+                Log.d("PDFDriveReader", "Reader: Saving session mode=READER, uri=$uri")
+                appConfigRepository.saveMode(AppMode.READER)
                 appConfigRepository.saveLastUri(uri)
+                
+                _state.update { it.copy(isLoading = false) }
+                
             } catch (e: Exception) {
+                Log.e("PDFDriveReader", "Reader: Failed to open document $uri", e)
                 _state.update { 
                     it.copy(
                         isLoading = false,
@@ -75,15 +86,22 @@ class ReaderViewModel @Inject constructor(
      * Loads the bitmap for a specific page.
      */
     private suspend fun loadPageBitmap(uri: String, index: Int) {
-        // Use a default size for now, ideally this comes from UI measurement
-        val bitmap = getPageImageUseCase(uri, index, 1080, 1920) as Bitmap
-        _state.update { it.copy(currentPageBitmap = bitmap) }
+        try {
+            Log.d("PDFDriveReader", "Reader: Loading bitmap for page $index")
+            val bitmap = getPageImageUseCase(uri, index, 1080, 1920) as Bitmap
+            _state.update { it.copy(currentPageBitmap = bitmap) }
+            Log.d("PDFDriveReader", "Reader: Bitmap loaded for page $index")
+        } catch (e: Exception) {
+            Log.e("PDFDriveReader", "Reader: Failed to render page $index", e)
+            _state.update { it.copy(errorMessage = "Error rendering page $index") }
+        }
     }
 
     /**
      * Toggles the visibility of the menu overlay.
      */
     fun toggleUI() {
+        Log.d("PDFDriveReader", "Reader: Toggle UI")
         _state.update { it.copy(isUiVisible = !it.isUiVisible) }
     }
 
@@ -94,6 +112,9 @@ class ReaderViewModel @Inject constructor(
      */
     fun onPageChanged(index: Int) {
         val documentId = _state.value.document?.id ?: return
+        if (index == _state.value.currentPage && _state.value.currentPageBitmap != null) return
+
+        Log.d("PDFDriveReader", "Reader: Page changed to $index")
         _state.update { it.copy(currentPage = index) }
         viewModelScope.launch {
             loadPageBitmap(documentId, index)
@@ -110,6 +131,7 @@ class ReaderViewModel @Inject constructor(
      * @param direction The new [ReadingDirection].
      */
     fun onDirectionChanged(direction: ReadingDirection) {
+        Log.d("PDFDriveReader", "Reader: Direction changed to $direction")
         _state.update { it.copy(direction = direction) }
         val documentId = _state.value.document?.id ?: return
         viewModelScope.launch {

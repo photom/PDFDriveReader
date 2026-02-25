@@ -17,9 +17,14 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.*
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class ReaderViewModelTest {
 
     private val openDocumentUseCase: OpenDocumentUseCase = mock()
@@ -54,9 +59,11 @@ class ReaderViewModelTest {
         assertFalse(viewModel.state.value.isUiVisible)
         
         viewModel.toggleUI()
+        advanceUntilIdle()
         assertTrue(viewModel.state.value.isUiVisible)
         
         viewModel.toggleUI()
+        advanceUntilIdle()
         assertFalse(viewModel.state.value.isUiVisible)
     }
 
@@ -78,7 +85,6 @@ class ReaderViewModelTest {
             appConfigRepository
         )
         
-        // Setup document in state
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -86,7 +92,6 @@ class ReaderViewModelTest {
         advanceUntilIdle()
         
         assertEquals(5, viewModel.state.value.currentPage)
-        // Verify bitmap was loaded for page 5
         verify(getPageImageUseCase, atLeastOnce()).invoke(eq(uri), eq(5), any(), any())
     }
 
@@ -110,9 +115,54 @@ class ReaderViewModelTest {
         advanceUntilIdle()
         
         viewModel.onDirectionChanged(ReadingDirection.RTL)
-        advanceUntilIdle() // Wait for persistence launch
+        advanceUntilIdle()
         
         assertEquals(ReadingDirection.RTL, viewModel.state.value.direction)
         verify(saveReadingDirectionUseCase).invoke(eq(uri), eq(ReadingDirection.RTL))
+    }
+
+    @Test
+    fun `loadDocument should set isLoading to false after successful load`() = runTest {
+        val uri = "uri1"
+        val mockDoc = PdfDocument(uri, 10)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val mockBitmap: Bitmap = mock()
+        
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mockBitmap
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        assertFalse(viewModel.state.value.isLoading)
+        assertNull(viewModel.state.value.errorMessage)
+    }
+
+    @Test
+    fun `loadDocument should set isLoading to false and set error message on failure`() = runTest {
+        val uri = "uri1"
+        whenever(openDocumentUseCase(any())) doAnswer { throw RuntimeException("IO Error") }
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        assertFalse(viewModel.state.value.isLoading)
+        assertEquals("IO Error", viewModel.state.value.errorMessage)
     }
 }

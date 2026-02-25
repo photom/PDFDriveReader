@@ -7,6 +7,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ## 1. Domain Layer Modules (`domain/`)
 
 ### 1.1 Entities & Value Objects
+- **`DocumentMetadata`**
+    - [ ] `id` is properly assigned and immutable.
+    - [ ] `isCached` correctly reflects the presence of the file in the cloud cache.
 - **`PdfDocument` (Aggregate Root)**
     - [ ] `id` is properly assigned and immutable.
     - [ ] `close()` correctly triggers the release of underlying resources.
@@ -75,6 +78,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Initial: `isUiVisible` is `false`.
     - [ ] `onToggleUI`: Flips the `isUiVisible` state.
     - [ ] `onPageChanged`: Triggers the `SaveReadingPosition` use case and updates `currentPageBitmap`.
+- **Loading & Error Handling**
+    - [ ] `loadDocument`: Verifies `isLoading` becomes `false` after successful load.
+    - [ ] `loadDocument`: Verifies `isLoading` becomes `false` and `errorMessage` is set when an exception occurs.
 - **Navigation & Paging**
     - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
     - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.

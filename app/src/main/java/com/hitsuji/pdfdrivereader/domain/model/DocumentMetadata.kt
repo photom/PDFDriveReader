@@ -7,12 +7,14 @@ package com.hitsuji.pdfdrivereader.domain.model
  * @property fileName The display name of the file.
  * @property locationPath The human-readable location (folder path or breadcrumb).
  * @property source The [SourceType] identifying where the file is stored.
+ * @property isCached True if the document is available in local storage (always true for local source).
  */
 data class DocumentMetadata(
     val id: String,
     val fileName: String,
     val locationPath: String,
-    val source: SourceType
+    val source: SourceType,
+    val isCached: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

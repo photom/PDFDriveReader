@@ -15,6 +15,7 @@ The entry point of the application, used for browsing and selecting PDFs.
   - **Location Path**: 
     - *Local*: The relative directory path (e.g., `/Documents/Books/`).
     - *Google Drive*: The name of the parent folder (e.g., `Manga`, `My Drive`).
+  - **Cached Status**: Google Drive items must display an "Offline" icon (e.g., a checkmark or cloud-download icon) if they are already downloaded to the local cache.
 - **Google Drive Tab**: ...
 
 ### 2. Reader Mode (PDF Viewing)

@@ -2,6 +2,8 @@ package com.hitsuji.pdfdrivereader.domain.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -36,5 +38,17 @@ class DocumentMetadataTest {
 
         assertEquals(doc1, doc2)
         assertNotEquals(doc1, doc3)
+    }
+
+    /**
+     * Verifies that the isCached property defaults to false and can be set correctly.
+     */
+    @Test
+    fun `isCached property should reflect the provided value`() {
+        val doc = DocumentMetadata("id", "name", "path", SourceType.GOOGLE_DRIVE, isCached = true)
+        assertTrue(doc.isCached)
+        
+        val docDefault = DocumentMetadata("id", "name", "path", SourceType.GOOGLE_DRIVE)
+        assertFalse(docDefault.isCached)
     }
 }

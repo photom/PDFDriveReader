@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -11,9 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,11 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import com.hitsuji.pdfdrivereader.domain.model.DocumentMetadata
 import com.hitsuji.pdfdrivereader.domain.model.SourceType
 import com.hitsuji.pdfdrivereader.presentation.theme.PdfDriveReaderTheme
-import android.util.Log
-import com.google.android.gms.common.api.ApiException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +41,7 @@ fun LibraryScreen(
     val tabs = listOf("Local Storage", "Google Drive")
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             viewModel.refreshLibrary()
@@ -216,7 +214,7 @@ fun DocumentItem(
             tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = document.fileName,
                 style = MaterialTheme.typography.bodyLarge,
@@ -231,6 +229,14 @@ fun DocumentItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
+        if (document.source == SourceType.GOOGLE_DRIVE && document.isCached) {
+            Icon(
+                Icons.Default.FileDownloadDone,
+                contentDescription = "Available Offline",
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        }
     }
 }
 
@@ -238,8 +244,9 @@ fun DocumentItem(
 @Composable
 fun LibraryScreenPreview() {
     val docs = listOf(
-        DocumentMetadata("1", "Clean_Architecture.pdf", "/Documents", SourceType.LOCAL_STORAGE),
-        DocumentMetadata("2", "Design_Patterns.pdf", "/Downloads", SourceType.LOCAL_STORAGE)
+        DocumentMetadata("1", "Clean_Architecture.pdf", "/Documents", SourceType.LOCAL_STORAGE, isCached = true),
+        DocumentMetadata("2", "Design_Patterns.pdf", "Manga", SourceType.GOOGLE_DRIVE, isCached = true),
+        DocumentMetadata("3", "Cloud_Native.pdf", "Books", SourceType.GOOGLE_DRIVE, isCached = false)
     )
     PdfDriveReaderTheme {
         Scaffold(
