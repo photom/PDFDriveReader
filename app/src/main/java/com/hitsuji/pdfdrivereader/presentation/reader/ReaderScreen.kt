@@ -34,6 +34,7 @@ fun ReaderScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showDirectionDialog by remember { mutableStateOf(false) }
 
+    // Synchronize pager state with ViewModel state, keyed by document ID to force reset on load
     val pagerState = rememberPagerState(
         initialPage = state.currentPage,
         pageCount = { state.document?.totalPageCount ?: 0 }

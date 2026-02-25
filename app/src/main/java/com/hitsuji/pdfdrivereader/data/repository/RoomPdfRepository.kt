@@ -37,11 +37,15 @@ class RoomPdfRepository @Inject constructor(
         }
     }
 
-    override suspend fun getDocument(uri: String): PdfDocument = withContext(Dispatchers.IO) {
+    /**
+     * Resolves a document URI to a local [File].
+     * If the document is from Google Drive, it ensures the file is cached locally.
+     */
+    private suspend fun resolveUriToFile(uri: String): File {
         val metadata = dao.getMetadataByUri(uri)
             ?: throw IllegalStateException("Metadata not found for: $uri")
 
-        val file = if (metadata.sourceType == "GOOGLE_DRIVE") {
+        return if (metadata.sourceType == "GOOGLE_DRIVE") {
             val cacheFile = File(scanner.getCloudCacheDir(), uri)
             if (!cacheFile.exists()) {
                 driveService.downloadFile(uri, cacheFile.absolutePath)
@@ -50,11 +54,15 @@ class RoomPdfRepository @Inject constructor(
         } else {
             File(uri)
         }
+    }
 
+    override suspend fun getDocument(uri: String): PdfDocument = withContext(Dispatchers.IO) {
+        val file = resolveUriToFile(uri)
         if (!file.exists()) {
             throw IllegalStateException("PDF file not found at: ${file.absolutePath}")
         }
-        renderer.openDocument(file)
+        // Force the returned PdfDocument to keep the original URI as its ID
+        renderer.openDocument(file).copy(id = uri)
     }
 
     override suspend fun savePosition(uri: String, position: PagePosition) = withContext(Dispatchers.IO) {
@@ -91,7 +99,8 @@ class RoomPdfRepository @Inject constructor(
         width: Int, 
         height: Int
     ): Any = withContext(Dispatchers.IO) {
-        renderer.renderPage(File(uri), pageIndex, width, height)
+        val file = resolveUriToFile(uri)
+        renderer.renderPage(file, pageIndex, width, height)
     }
 
     override suspend fun syncLocal() = withContext(Dispatchers.IO) {
@@ -102,7 +111,6 @@ class RoomPdfRepository @Inject constructor(
     }
 
     override suspend fun syncCloud() = withContext(Dispatchers.IO) {
-        // Exceptions are intentionally NOT caught here so they can be handled by the UseCase/Result pattern.
         val cloudDocs = driveService.listFiles()
         cloudDocs.forEach { doc ->
             dao.upsertMetadata(documentMapper.toEntity(doc))
