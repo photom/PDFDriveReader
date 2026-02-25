@@ -18,6 +18,7 @@ class FakeGoogleDriveService : GoogleDriveService {
     override val authState: StateFlow<Boolean> = _authState.asStateFlow()
 
     private val cloudFiles = mutableListOf<DocumentMetadata>()
+    private val folderMap = mutableMapOf<String, String>()
     var shouldFail = false
 
     override fun getSignInIntent(): Any {
@@ -34,7 +35,13 @@ class FakeGoogleDriveService : GoogleDriveService {
 
     override suspend fun listFiles(): List<DocumentMetadata> {
         if (shouldFail) throw RuntimeException("Simulated Network Error")
-        return if (_authState.value) cloudFiles else emptyList()
+        return if (_authState.value) {
+            cloudFiles.map { doc ->
+                // Simulate folder resolution using the ID stored in locationPath as a key
+                val resolvedName = folderMap[doc.locationPath] ?: doc.locationPath
+                doc.copy(locationPath = resolvedName)
+            }
+        } else emptyList()
     }
 
     override suspend fun downloadFile(fileId: String, destination: String) {
@@ -43,10 +50,19 @@ class FakeGoogleDriveService : GoogleDriveService {
 
     /**
      * Helper for tests to pre-populate cloud files.
+     * 
+     * @param parentId The ID of the parent folder (will be resolved via folderMap).
      */
-    fun addCloudFile(id: String, name: String) {
+    fun addCloudFile(id: String, name: String, parentId: String = "My Drive") {
         cloudFiles.add(
-            DocumentMetadata(id, name, "Google Drive", SourceType.GOOGLE_DRIVE)
+            DocumentMetadata(id, name, parentId, SourceType.GOOGLE_DRIVE)
         )
+    }
+
+    /**
+     * Helper for tests to mock folder name resolution.
+     */
+    fun addFolder(id: String, name: String) {
+        folderMap[id] = name
     }
 }

@@ -66,19 +66,20 @@ class RoomPdfRepositoryTest {
     }
 
     /**
-     * Verifies that syncCloud correctly fetches files and updates the DAO.
+     * Verifies that syncCloud correctly fetches files and updates the DAO with resolved folder names.
      */
     @Test
-    fun `syncCloud should fetch files from drive and update DAO`() = runTest {
-        // Use handleSignInResult instead of signIn
+    fun `syncCloud should fetch files from drive and update DAO with folder names`() = runTest {
         driveService.handleSignInResult(Any())
-        driveService.addCloudFile("drive1", "Cloud.pdf")
+        driveService.addFolder("folderId1", "My Books")
+        driveService.addCloudFile("drive1", "Cloud.pdf", "folderId1")
         
         repository.syncCloud()
         
         verify(dao).upsertMetadata(check {
             assertEquals("drive1", it.fileUri)
             assertEquals("Cloud.pdf", it.fileName)
+            assertEquals("My Books", it.locationPath)
         })
     }
 }

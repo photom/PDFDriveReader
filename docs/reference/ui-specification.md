@@ -9,7 +9,12 @@ The entry point of the application, used for browsing and selecting PDFs.
   - **App Title**: Left-aligned.
   - **Search Icon**: Reveals a filter bar that searches within the **currently active tab** (Local or Cloud).
   - **Syncing Icon**: Shown only during active background sync.
-- **Sorting**: By default, lists are sorted by **Last Modified/Opened** (newest first).
+- **Sorting**: By default, lists are sorted alphabetically by **Location Path** (folder), and then by **File Name**.
+- **List Item Details**:
+  - **File Name**: Primary title of the document.
+  - **Location Path**: 
+    - *Local*: The relative directory path (e.g., `/Documents/Books/`).
+    - *Google Drive*: The name of the parent folder (e.g., `Manga`, `My Drive`).
 - **Google Drive Tab**: ...
 
 ### 2. Reader Mode (PDF Viewing)

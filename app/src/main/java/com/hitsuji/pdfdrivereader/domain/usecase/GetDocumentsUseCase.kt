@@ -3,7 +3,7 @@ package com.hitsuji.pdfdrivereader.domain.usecase
 import com.hitsuji.pdfdrivereader.domain.model.DocumentMetadata
 import com.hitsuji.pdfdrivereader.domain.repository.PdfRepository
 import kotlinx.coroutines.flow.Flow
-
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
@@ -15,11 +15,19 @@ class GetDocumentsUseCase @Inject constructor(
     private val repository: PdfRepository
 ) {
     /**
-     * Executes the observation logic.
+     * Executes the observation logic and sorts the results.
      * 
-     * @return A [Flow] emitting updated lists of [DocumentMetadata].
+     * The list is sorted primary by [DocumentMetadata.locationPath] and 
+     * secondary by [DocumentMetadata.fileName] in alphabetical order.
+     * 
+     * @return A [Flow] emitting updated and sorted lists of [DocumentMetadata].
      */
     operator fun invoke(): Flow<List<DocumentMetadata>> {
-        return repository.getDocuments()
+        return repository.getDocuments().map { docs ->
+            docs.sortedWith(
+                compareBy<DocumentMetadata> { it.locationPath }
+                    .thenBy { it.fileName }
+            )
+        }
     }
 }

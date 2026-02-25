@@ -34,4 +34,27 @@ class GetDocumentsUseCaseTest {
 
         assertEquals(expectedDocs, result)
     }
+
+    /**
+     * Verifies that the use case sorts the document list alphabetically by locationPath and then by fileName.
+     */
+    @Test
+    fun `invoke should return documents sorted by path then by name`() = runTest {
+        val doc1 = DocumentMetadata("1", "z.pdf", "/b/", SourceType.LOCAL_STORAGE)
+        val doc2 = DocumentMetadata("2", "a.pdf", "/b/", SourceType.LOCAL_STORAGE)
+        val doc3 = DocumentMetadata("3", "m.pdf", "/a/", SourceType.LOCAL_STORAGE)
+        
+        val unsortedDocs = listOf(doc1, doc2, doc3)
+        whenever(repository.getDocuments()) doReturn flowOf(unsortedDocs)
+
+        val result = useCase().first()
+
+        // Expected Order:
+        // 1. /a/ - m.pdf (doc3)
+        // 2. /b/ - a.pdf (doc2)
+        // 3. /b/ - z.pdf (doc1)
+        assertEquals(doc3, result[0])
+        assertEquals(doc2, result[1])
+        assertEquals(doc1, result[2])
+    }
 }

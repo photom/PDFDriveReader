@@ -18,6 +18,8 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Validation: Zoom level must be between 1.0 and 5.0.
 
 ### 1.2 Use Cases (Business Logic)
+- **`GetDocumentsUseCase`**
+    - [ ] Logic: Verifies the resulting list is sorted primary by `locationPath` and secondary by `fileName`.
 - **`SyncLocalLibrary`**
     - [ ] Success: Returns list when repository finds PDFs.
     - [ ] Empty: Returns empty list when repository is empty.
@@ -93,6 +95,12 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **`PdfRendererWrapper`**
     - [ ] `renderPage`: Generates a Bitmap of the requested size.
     - [ ] `getPageCount`: Correctly reports the total pages in the PDF.
+
+### 4.3 Google Drive Service
+- **`GoogleDriveServiceImpl`**
+    - [ ] `listFiles`: Verifies that parent folder IDs are resolved to folder names via the API.
+    - [ ] `listFiles`: Verifies that the internal folder cache prevents redundant API calls for the same parent ID.
+    - [ ] `listFiles`: Verifies that documents without parents default to "My Drive".
 
 ---
 

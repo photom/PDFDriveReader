@@ -108,18 +108,34 @@ class GoogleDriveServiceImpl @Inject constructor(
                 .setFields("files(id, name, parents)")
                 .execute()
 
+            // Map to cache parent folder names to avoid redundant API calls
+            val folderCache = mutableMapOf<String, String>()
+
             Log.d("PDFDriveReader", "Found ${result.files.size} PDF files on Drive")
             result.files.map { file ->
+                val parentId = file.parents?.firstOrNull()
+                val folderName = if (parentId != null) {
+                    folderCache.getOrPut(parentId) {
+                        try {
+                            service.files().get(parentId).setFields("name").execute().name
+                        } catch (e: Exception) {
+                            "Unknown Folder"
+                        }
+                    }
+                } else {
+                    "My Drive"
+                }
+
                 DocumentMetadata(
                     id = file.id,
                     fileName = file.name,
-                    locationPath = "Google Drive",
+                    locationPath = folderName,
                     source = SourceType.GOOGLE_DRIVE
                 )
             }
         } catch (e: Exception) {
             Log.e("PDFDriveReader", "Error listing Drive files", e)
-            emptyList()
+            throw e
         }
     }
 
