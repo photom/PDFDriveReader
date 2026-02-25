@@ -22,6 +22,9 @@ import javax.inject.Inject
 
 /**
  * ViewModel for the immersive Reader screen.
+ * 
+ * Implements a 3-page sliding cache (Previous, Current, Next) to ensure 
+ * smooth transitions during swipes.
  */
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
@@ -33,24 +36,14 @@ class ReaderViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReaderState())
-    /**
-     * Observable [StateFlow] representing the reader's UI state.
-     */
     val state: StateFlow<ReaderState> = _state.asStateFlow()
 
-    /**
-     * Loads a PDF document and restores its last saved state.
-     * 
-     * @param uri The document unique identifier.
-     */
     fun loadDocument(uri: String) {
         Log.d("PDFDriveReader", "Reader: Loading document $uri")
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            _state.update { it.copy(isLoading = true, errorMessage = null, pageCache = emptyMap()) }
             try {
                 val openedDoc = openDocumentUseCase(uri)
-                Log.d("PDFDriveReader", "Reader: Document opened. Count=${openedDoc.document.totalPageCount}, Direction=${openedDoc.direction}")
-                
                 _state.update { 
                     it.copy(
                         document = openedDoc.document,
@@ -60,78 +53,70 @@ class ReaderViewModel @Inject constructor(
                     )
                 }
                 
-                // Initial page load
-                loadPageBitmap(uri, openedDoc.position.pageIndex)
+                // Initial 3-page cache load
+                refreshPageCache(uri, openedDoc.position.pageIndex)
                 
-                // Persist session
-                Log.d("PDFDriveReader", "Reader: Saving session mode=READER, uri=$uri")
-                appConfigRepository.saveMode(AppMode.READER)
                 appConfigRepository.saveLastUri(uri)
-                
                 _state.update { it.copy(isLoading = false) }
                 
             } catch (e: Exception) {
                 Log.e("PDFDriveReader", "Reader: Failed to open document $uri", e)
-                _state.update { 
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = e.message ?: "Failed to open document"
-                    )
-                }
+                _state.update { it.copy(isLoading = false, errorMessage = e.message ?: "Failed to open document") }
             }
         }
     }
 
     /**
-     * Loads the bitmap for a specific page.
+     * Refreshes the 3-page window cache around the [centerIndex].
      */
-    private suspend fun loadPageBitmap(uri: String, index: Int) {
-        try {
-            Log.d("PDFDriveReader", "Reader: Loading bitmap for page $index")
-            val bitmap = getPageImageUseCase(uri, index, 1080, 1920) as Bitmap
-            _state.update { it.copy(currentPageBitmap = bitmap) }
-            Log.d("PDFDriveReader", "Reader: Bitmap loaded for page $index")
-        } catch (e: Exception) {
-            Log.e("PDFDriveReader", "Reader: Failed to render page $index", e)
-            _state.update { it.copy(errorMessage = "Error rendering page $index") }
+    private suspend fun refreshPageCache(uri: String, centerIndex: Int) {
+        val totalPages = _state.value.document?.totalPageCount ?: return
+        val indicesToLoad = listOf(centerIndex - 1, centerIndex, centerIndex + 1)
+            .filter { it in 0 until totalPages }
+
+        indicesToLoad.forEach { index ->
+            if (!_state.value.pageCache.containsKey(index)) {
+                loadPageIntoCache(uri, index)
+            }
+        }
+
+        // Optional: Purge pages outside the 3-page window to save memory
+        _state.update { currentState ->
+            currentState.copy(pageCache = currentState.pageCache.filterKeys { it in indicesToLoad })
         }
     }
 
-    /**
-     * Toggles the visibility of the menu overlay.
-     */
+    private suspend fun loadPageIntoCache(uri: String, index: Int) {
+        try {
+            Log.d("PDFDriveReader", "Reader: Caching page $index")
+            val bitmap = getPageImageUseCase(uri, index, 1080, 1920) as Bitmap
+            _state.update { currentState ->
+                val newCache = currentState.pageCache.toMutableMap().apply { put(index, bitmap) }
+                currentState.copy(pageCache = newCache)
+            }
+        } catch (e: Exception) {
+            Log.e("PDFDriveReader", "Reader: Failed to cache page $index", e)
+        }
+    }
+
     fun toggleUI() {
-        Log.d("PDFDriveReader", "Reader: Toggle UI")
         _state.update { it.copy(isUiVisible = !it.isUiVisible) }
     }
 
-    /**
-     * Updates the current page index and persists it to storage.
-     * 
-     * @param index The 0-based page index.
-     */
     fun onPageChanged(index: Int) {
         val documentId = _state.value.document?.id ?: return
-        if (index == _state.value.currentPage && _state.value.currentPageBitmap != null) return
+        if (index == _state.value.currentPage) return
 
         Log.d("PDFDriveReader", "Reader: Page changed to $index")
         _state.update { it.copy(currentPage = index) }
+        
         viewModelScope.launch {
-            loadPageBitmap(documentId, index)
-            saveReadingPositionUseCase(
-                documentId, 
-                PagePosition(index, _state.value.zoomLevel)
-            )
+            refreshPageCache(documentId, index)
+            saveReadingPositionUseCase(documentId, PagePosition(index, _state.value.zoomLevel))
         }
     }
 
-    /**
-     * Updates the reading direction and persists it.
-     * 
-     * @param direction The new [ReadingDirection].
-     */
     fun onDirectionChanged(direction: ReadingDirection) {
-        Log.d("PDFDriveReader", "Reader: Direction changed to $direction")
         _state.update { it.copy(direction = direction) }
         val documentId = _state.value.document?.id ?: return
         viewModelScope.launch {

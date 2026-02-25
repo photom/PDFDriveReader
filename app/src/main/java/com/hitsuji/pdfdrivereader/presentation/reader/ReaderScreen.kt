@@ -204,9 +204,10 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        if (state.currentPage == pageIndex && state.currentPageBitmap != null) {
+        val bitmap = state.pageCache[pageIndex]
+        if (bitmap != null) {
             androidx.compose.foundation.Image(
-                bitmap = state.currentPageBitmap.asImageBitmap(),
+                bitmap = bitmap.asImageBitmap(),
                 contentDescription = "PDF Page ${pageIndex + 1}",
                 modifier = Modifier.fillMaxSize()
             )

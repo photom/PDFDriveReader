@@ -12,7 +12,7 @@ data class ReaderState(
     val document: PdfDocument? = null,
     val isUiVisible: Boolean = false,
     val currentPage: Int = 0,
-    val currentPageBitmap: Bitmap? = null,
+    val pageCache: Map<Int, Bitmap> = emptyMap(),
     val zoomLevel: Float = 1.0f,
     val direction: ReadingDirection = ReadingDirection.LTR,
     val errorMessage: String? = null

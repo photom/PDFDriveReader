@@ -68,7 +68,7 @@ class ReaderViewModelTest {
     }
 
     @Test
-    fun `onPageChanged should update state and load bitmap`() = runTest {
+    fun `onPageChanged should update state and load cache`() = runTest {
         val mockBitmap: Bitmap = mock()
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, 10)
@@ -76,6 +76,8 @@ class ReaderViewModelTest {
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mockBitmap
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
             openDocumentUseCase, 
@@ -92,7 +94,10 @@ class ReaderViewModelTest {
         advanceUntilIdle()
         
         assertEquals(5, viewModel.state.value.currentPage)
-        verify(getPageImageUseCase, atLeastOnce()).invoke(eq(uri), eq(5), any(), any())
+        // Verify multiple pages around 5 were loaded (4, 5, 6)
+        assertTrue(viewModel.state.value.pageCache.containsKey(4))
+        assertTrue(viewModel.state.value.pageCache.containsKey(5))
+        assertTrue(viewModel.state.value.pageCache.containsKey(6))
     }
 
     @Test
@@ -102,6 +107,8 @@ class ReaderViewModelTest {
         val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
             openDocumentUseCase, 
@@ -130,6 +137,8 @@ class ReaderViewModelTest {
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mockBitmap
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
             openDocumentUseCase, 
