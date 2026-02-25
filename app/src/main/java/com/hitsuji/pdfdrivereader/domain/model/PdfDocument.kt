@@ -1,0 +1,26 @@
+package com.hitsuji.pdfdrivereader.domain.model
+
+/**
+ * The aggregate root for an active PDF document session.
+ * 
+ * @property id The unique identifier (URI).
+ * @property totalPageCount The total number of pages in the document.
+ */
+data class PdfDocument(
+    val id: String,
+    val totalPageCount: Int
+) {
+    init {
+        require(totalPageCount > 0) { "totalPageCount must be positive" }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PdfDocument) return false
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+}
