@@ -53,3 +53,19 @@ A distraction-free environment for document consumption.
 - **Navigation History**: Link backstack is persisted across backgrounding but cleared when a different document is opened.
 - **Last File**: Automatically opens the previously viewed PDF if Reader Mode is the active mode on launch.
 - **Cache**: Stores active mode, file metadata (via `file_uri`), and settings in an SQLite database.
+
+## Error Feedback & User Notification
+To ensure the user is never left without feedback during failed operations:
+
+### 1. Authentication Failures
+- **Visual Feedback**: If Sign-In fails, a **SnackBar** must appear with a descriptive message (e.g., "Sign-in failed. Please check your connection.").
+- **State Recovery**: The "Sign In" button must remain enabled and interactive after a failed attempt.
+- **Detailed Error**: In debug builds, the SnackBar should include the error code (e.g., "Google API Error: 12500").
+
+### 2. Synchronization Errors
+- **Syncing Icon**: If a sync fails, the `Syncing Icon` should transition to an `Error Icon` (e.g., a warning triangle) for 3 seconds before disappearing.
+- **Empty States**: If a sync completes but returns 0 results due to an error, the empty state text should change from "No PDFs found" to "Failed to fetch documents. Tap to retry."
+
+### 3. Rendering Failures
+- **Placeholder**: If a specific page fails to render, display a gray box with a "Refresh" icon in the center.
+- **Notification**: Show a toast message: "Error rendering page [X]".

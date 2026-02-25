@@ -60,6 +60,13 @@ To prevent memory leaks and file handle exhaustion:
   - A new document is opened, replacing the current one.
 - **Safety**: Use `try-finally` blocks or Kotlin's `.use {}` extension to ensure `close()` is called even if rendering fails.
 
+### Cloud File Materialization (Downloading)
+Since `PdfRenderer` requires local file access, documents from Google Drive must be "materialized" before viewing:
+- **Download Cache**: Cloud files must be downloaded to the app's internal `cacheDir/cloud_docs/` directory.
+- **On-Demand Loading**: Downloading should be triggered when the user selects a cloud document in the Library.
+- **State Feedback**: The UI must show a "Downloading..." progress indicator during this phase.
+- **Persistence**: Materialized files should be kept in the cache until the space is needed, using the `file_uri` (Drive ID) as the filename.
+
 ### High-Zoom Rendering (Tiling Strategy)
 To support 100%-500% zoom without `OutOfMemory` errors:
 - **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution.
@@ -96,3 +103,10 @@ The Library search functionality must follow these rules:
 | `file_uri` | Foreign Key to DOCUMENT_METADATA. |
 | `page_index` | The page the user was on. |
 | `timestamp` | For stack ordering (LIFO). |
+
+### Error Propagation & Diagnostics
+To facilitate troubleshooting and robust state management:
+- **Logging Level**: All critical state changes (Auth, Sync Start/End, File Open) must be logged at the `DEBUG` level using the tag "PDFDriveReader".
+- **Uncaught Failures**: Exceptions in background coroutines must be caught and logged at the `ERROR` level with stack traces.
+- **State Integrity**: If a Google Sign-In result is received but the internal `driveService` fails to initialize, the `authState` must be explicitly reset to `false` to avoid a "stuck" UI state.
+- **Result Types**: Repositories and UseCases must return a `Result<T>` or a sealed `Outcome` class rather than throwing exceptions, allowing the ViewModel to update the UI error state.
