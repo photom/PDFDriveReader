@@ -58,7 +58,11 @@ Tool: **Compose UI Test** / **Espresso**.
     - Relaunch and verify it opens directly to the same page/zoom level.
 
 ### Flow: Reader Interactions & Edge Cases
-1. **Orientation Change**:
+1. **Paging (Swiping)**:
+    - **LTR Mode**: Swipe right-to-left and verify page increments.
+    - **RTL Mode**: Swipe left-to-right and verify page increments (Manga style).
+    - **TTB Mode**: Swipe bottom-to-top and verify continuous scroll or page transition.
+2. **Orientation Change**:
     - Open a PDF to page 15, rotate to Landscape.
     - Verify the page remains at 15 and the UI overlay state (visible/hidden) is preserved.
 2. **Missing File**:

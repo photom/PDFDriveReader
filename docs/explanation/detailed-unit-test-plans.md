@@ -74,13 +74,11 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **UI State (Immersive)**
     - [ ] Initial: `isUiVisible` is `false`.
     - [ ] `onToggleUI`: Flips the `isUiVisible` state.
-    - [ ] `onPageChanged`: Triggers the `SaveReadingPosition` use case (debounced).
-- **Navigation**
-    - [ ] `onBackPressed`:
-        - If UI is visible: Hides UI.
-        - If UI is hidden: Navigates to Library Mode.
-- **Reading Direction**
-    - [ ] `onDirectionChanged`: Updates the `ReadingSettings` and triggers a persistence update.
+    - [ ] `onPageChanged`: Triggers the `SaveReadingPosition` use case and updates `currentPageBitmap`.
+- **Navigation & Paging**
+    - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
+    - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.
+    - [ ] `onDirectionChanged`: Verifies that the UI state reflects the new direction immediately.
 
 ---
 

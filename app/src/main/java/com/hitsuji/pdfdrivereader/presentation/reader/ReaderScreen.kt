@@ -6,6 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -31,31 +34,72 @@ fun ReaderScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showDirectionDialog by remember { mutableStateOf(false) }
 
+    // Synchronize pager state with ViewModel state
+    val pagerState = rememberPagerState(
+        initialPage = state.currentPage,
+        pageCount = { state.document?.totalPageCount ?: 0 }
+    )
+
+    // Update ViewModel when user swipes
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != state.currentPage) {
+            viewModel.onPageChanged(pagerState.currentPage)
+        }
+    }
+
+    // Update Pager when state changes (e.g. from Slider)
+    LaunchedEffect(state.currentPage) {
+        if (pagerState.currentPage != state.currentPage) {
+            pagerState.scrollToPage(state.currentPage)
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                viewModel.toggleUI()
-            }
     ) {
-        // PDF Content
+        // PDF Content with Paging
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    viewModel.toggleUI()
+                }
         ) {
             if (state.isLoading) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color.White)
             } else {
-                state.currentPageBitmap?.let { bitmap ->
-                    androidx.compose.foundation.Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "PDF Page",
-                        modifier = Modifier.fillMaxSize()
-                    )
+                when (state.direction) {
+                    ReadingDirection.LTR -> {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { pageIndex ->
+                            PdfPageDisplay(state, pageIndex)
+                        }
+                    }
+                    ReadingDirection.RTL -> {
+                        // RTL in Compose Pager can be handled by reverseLayout or layoutDirection
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            reverseLayout = true
+                        ) { pageIndex ->
+                            PdfPageDisplay(state, pageIndex)
+                        }
+                    }
+                    ReadingDirection.TTB -> {
+                        VerticalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { pageIndex ->
+                            PdfPageDisplay(state, pageIndex)
+                        }
+                    }
                 }
             }
         }
@@ -145,6 +189,26 @@ fun ReaderScreen(
 }
 
 @Composable
+fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        // Only show bitmap if it matches the current page we are rendering in the pager
+        // Note: For better UX, we should implement a per-page bitmap cache in ViewModel
+        if (state.currentPage == pageIndex && state.currentPageBitmap != null) {
+            androidx.compose.foundation.Image(
+                bitmap = state.currentPageBitmap.asImageBitmap(),
+                contentDescription = "PDF Page ${pageIndex + 1}",
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            CircularProgressIndicator(color = Color.Gray)
+        }
+    }
+}
+
+@Composable
 fun ReadingDirectionDialog(
     currentDirection: ReadingDirection,
     onDirectionSelected: (ReadingDirection) -> Unit,
@@ -178,6 +242,7 @@ fun ReadingDirectionDialog(
             }
         },
         confirmButton = {
+            @Suppress("DEPRECATION")
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )

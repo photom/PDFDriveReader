@@ -89,4 +89,30 @@ class ReaderViewModelTest {
         // Verify bitmap was loaded for page 5
         verify(getPageImageUseCase, atLeastOnce()).invoke(eq(uri), eq(5), any(), any())
     }
+
+    @Test
+    fun `onDirectionChanged should update state and persist`() = runTest {
+        val uri = "uri1"
+        val mockDoc = PdfDocument(uri, 10)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        viewModel.onDirectionChanged(ReadingDirection.RTL)
+        advanceUntilIdle() // Wait for persistence launch
+        
+        assertEquals(ReadingDirection.RTL, viewModel.state.value.direction)
+        verify(saveReadingDirectionUseCase).invoke(eq(uri), eq(ReadingDirection.RTL))
+    }
 }
