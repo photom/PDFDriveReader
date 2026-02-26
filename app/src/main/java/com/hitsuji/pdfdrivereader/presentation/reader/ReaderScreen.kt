@@ -157,7 +157,7 @@ fun ReaderScreen(
             exit = fadeOut() + slideOutVertically()
         ) {
             TopAppBar(
-                title = { Text(state.document?.id?.substringAfterLast("/") ?: "Reader") },
+                title = { Text(state.document?.fileName ?: "Reader") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

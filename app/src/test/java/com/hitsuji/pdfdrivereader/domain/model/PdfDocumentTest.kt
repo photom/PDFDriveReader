@@ -14,9 +14,9 @@ class PdfDocumentTest {
      */
     @Test
     fun `PdfDocument instances with identical IDs should be equal`() {
-        val doc1 = PdfDocument(id = "uri1", totalPageCount = 10)
-        val doc2 = PdfDocument(id = "uri1", totalPageCount = 20)
-        val doc3 = PdfDocument(id = "uri2", totalPageCount = 10)
+        val doc1 = PdfDocument(id = "uri1", fileName = "doc.pdf", totalPageCount = 10)
+        val doc2 = PdfDocument(id = "uri1", fileName = "doc.pdf", totalPageCount = 20)
+        val doc3 = PdfDocument(id = "uri2", fileName = "doc.pdf", totalPageCount = 10)
 
         assertEquals(doc1, doc2)
         assertNotEquals(doc1, doc3)
@@ -27,7 +27,7 @@ class PdfDocumentTest {
      */
     @Test(expected = IllegalArgumentException::class)
     fun `initializing PdfDocument with zero pages should throw exception`() {
-        PdfDocument(id = "uri1", totalPageCount = 0)
+        PdfDocument(id = "uri1", fileName = "doc.pdf", totalPageCount = 0)
     }
 
     /**
@@ -35,6 +35,6 @@ class PdfDocumentTest {
      */
     @Test(expected = IllegalArgumentException::class)
     fun `initializing PdfDocument with negative pages should throw exception`() {
-        PdfDocument(id = "uri1", totalPageCount = -1)
+        PdfDocument(id = "uri1", fileName = "doc.pdf", totalPageCount = -1)
     }
 }

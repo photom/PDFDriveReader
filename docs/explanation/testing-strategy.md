@@ -52,6 +52,7 @@ Tool: **Compose UI Test** / **Espresso**.
 3. **Open Document**: Tap a list item and verify transition to Reader Mode.
 4. **Reader Interaction**:
     - Single tap shows the UI overlay.
+    - Verify the Top App Bar displays the selected document's **File Name**.
     - Toggle reading direction and verify the UI updates (e.g., scrollbar moves).
 5. **Session Restore**:
     - Close the app in Reader Mode.

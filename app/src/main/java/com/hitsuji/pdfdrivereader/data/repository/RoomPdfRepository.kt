@@ -37,10 +37,7 @@ class RoomPdfRepository @Inject constructor(
         }
     }
 
-    private suspend fun resolveUriToFile(uri: String): File {
-        val metadata = dao.getMetadataByUri(uri)
-            ?: throw IllegalStateException("Metadata not found for: $uri")
-
+    private suspend fun resolveUriToFile(uri: String, metadata: com.hitsuji.pdfdrivereader.data.local.entity.DocumentMetadataEntity): File {
         return if (metadata.sourceType == "GOOGLE_DRIVE") {
             val cacheFile = File(scanner.getCloudCacheDir(), uri)
             if (!cacheFile.exists()) {
@@ -53,11 +50,14 @@ class RoomPdfRepository @Inject constructor(
     }
 
     override suspend fun getDocument(uri: String): PdfDocument = withContext(Dispatchers.IO) {
-        val file = resolveUriToFile(uri)
+        val metadata = dao.getMetadataByUri(uri)
+            ?: throw IllegalStateException("Metadata not found for: $uri")
+
+        val file = resolveUriToFile(uri, metadata)
         if (!file.exists()) {
             throw IllegalStateException("PDF file not found at: ${file.absolutePath}")
         }
-        renderer.openDocument(file).copy(id = uri)
+        renderer.openDocument(file).copy(id = uri, fileName = metadata.fileName)
     }
 
     override suspend fun savePosition(uri: String, position: PagePosition) = withContext(Dispatchers.IO) {

@@ -4,10 +4,12 @@ package com.hitsuji.pdfdrivereader.domain.model
  * The aggregate root for an active PDF document session.
  * 
  * @property id The unique identifier (URI).
+ * @property fileName The name of the file to display in the UI.
  * @property totalPageCount The total number of pages in the document.
  */
 data class PdfDocument(
     val id: String,
+    val fileName: String,
     val totalPageCount: Int
 ) {
     init {

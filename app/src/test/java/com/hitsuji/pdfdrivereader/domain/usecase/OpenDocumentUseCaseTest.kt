@@ -25,7 +25,7 @@ class OpenDocumentUseCaseTest {
     @Test
     fun `invoke should return document with restored settings when they exist`() = runTest {
         val uri = "uri1"
-        val expectedDoc = PdfDocument(uri, 10)
+        val expectedDoc = PdfDocument(uri, "doc.pdf", 10)
         val savedPos = PagePosition(5, 1.5f)
         val savedDirection = ReadingDirection.RTL
 
@@ -46,7 +46,7 @@ class OpenDocumentUseCaseTest {
     @Test
     fun `invoke should return document with default settings when no saved state exists`() = runTest {
         val uri = "uri1"
-        val expectedDoc = PdfDocument(uri, 10)
+        val expectedDoc = PdfDocument(uri, "doc.pdf", 10)
 
         whenever(repository.getDocument(uri)) doReturn expectedDoc
         whenever(repository.getSavedPosition(uri)) doReturn null

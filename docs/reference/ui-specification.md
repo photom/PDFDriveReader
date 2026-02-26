@@ -21,6 +21,7 @@ The entry point of the application, used for browsing and selecting PDFs.
 
 ### 2. Reader Mode (PDF Viewing)
 A distraction-free environment for document consumption.
+- **Top Bar**: Hidden by default (Immersive View). When visible, the title must display the **File Name** of the currently opened document.
 - **Immersive View**: UI hidden by default.
 - **Scroll Physics**:
   - **LTR / RTL**: **Paginated** (snaps to page boundaries) to simulate a physical book.

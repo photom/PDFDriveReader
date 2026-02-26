@@ -27,7 +27,7 @@ class PdfRendererWrapper {
      */
     fun openDocument(file: File): PdfDocument {
         if (activeFile?.absolutePath == file.absolutePath && activeRenderer != null) {
-            return PdfDocument(file.absolutePath, activeRenderer!!.pageCount)
+            return PdfDocument(file.absolutePath, file.name, activeRenderer!!.pageCount)
         }
 
         close() // Close existing session if any
@@ -40,7 +40,7 @@ class PdfRendererWrapper {
             activeRenderer = renderer
             activeFile = file
             
-            return PdfDocument(id = file.absolutePath, totalPageCount = renderer.pageCount)
+            return PdfDocument(id = file.absolutePath, fileName = file.name, totalPageCount = renderer.pageCount)
         } catch (e: Exception) {
             Log.e("PDFDriveReader", "PdfRenderer: Failed to open document", e)
             throw e

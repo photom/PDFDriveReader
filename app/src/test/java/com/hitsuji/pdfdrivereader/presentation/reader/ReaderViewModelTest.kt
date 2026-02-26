@@ -71,7 +71,7 @@ class ReaderViewModelTest {
     fun `onPageChanged should update state and load cache`() = runTest {
         val mockBitmap: Bitmap = mock()
         val uri = "uri1"
-        val mockDoc = PdfDocument(uri, 10)
+        val mockDoc = PdfDocument(uri, "doc.pdf", 10)
         val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -108,7 +108,7 @@ class ReaderViewModelTest {
     @Test
     fun `rapid onPageChanged should cancel previous caching jobs`() = runTest {
         val uri = "uri1"
-        val mockDoc = PdfDocument(uri, 100)
+        val mockDoc = PdfDocument(uri, "doc.pdf", 100)
         val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -152,7 +152,7 @@ class ReaderViewModelTest {
     @Test
     fun `onDirectionChanged should update state and persist`() = runTest {
         val uri = "uri1"
-        val mockDoc = PdfDocument(uri, 10)
+        val mockDoc = PdfDocument(uri, "doc.pdf", 10)
         val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -182,7 +182,7 @@ class ReaderViewModelTest {
     @Test
     fun `loadDocument should set isLoading to false after successful load`() = runTest {
         val uri = "uri1"
-        val mockDoc = PdfDocument(uri, 10)
+        val mockDoc = PdfDocument(uri, "doc.pdf", 10)
         val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         val mockBitmap: Bitmap = mock()
         
