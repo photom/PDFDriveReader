@@ -50,10 +50,15 @@ A distraction-free environment for document consumption.
 ## Scrollbars
 - **Horizontal (L-to-R / R-to-L)**:
   - Position: Bottom.
-  - Labels: Current Page / Total Pages (to the left).
+  - Layout: Centered in a semi-transparent Surface with 24dp internal padding.
+  - Labels: 
+    - **Top**: "Page [Current] of [Total]" centered.
+    - **Left**: Current page number.
+    - **Right**: Total page count.
 - **Vertical (Top-to-Bottom)**:
   - Position: Right.
   - Labels: Current Page / Total Pages (above the bar).
+- **Dark Mode Support**: All labels must use the `onSurface` color to ensure high contrast in all themes.
 - **Persistence**: Visible during scroll + 2-second delay after gesture completion.
 
 ## Persistence & State

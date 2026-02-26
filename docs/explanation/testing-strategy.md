@@ -70,7 +70,10 @@ Tool: **Compose UI Test** / **Espresso**.
     - Verify that the app remains responsive (no hangs).
     - Verify that the final page is rendered only after the slider is released.
     - Verify that only the last 3-page window remains in memory.
-3. **Orientation Change**:
+3. **Dark Mode & Themes**:
+    - Switch the device to Dark Mode.
+    - Open the Reader and verify that all text labels (Page count, Slider labels) are clearly visible.
+4. **Orientation Change**:
     - Open a PDF to page 15, rotate to Landscape.
     - Verify the page remains at 15 and the UI overlay state (visible/hidden) is preserved.
 2. **Missing File**:

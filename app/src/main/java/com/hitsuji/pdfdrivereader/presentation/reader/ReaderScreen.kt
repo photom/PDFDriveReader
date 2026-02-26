@@ -182,7 +182,7 @@ fun ReaderScreen(
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     var sliderValue by remember { mutableFloatStateOf(state.currentPage.toFloat()) }
@@ -194,17 +194,37 @@ fun ReaderScreen(
 
                     Text(
                         "Page ${sliderValue.toInt() + 1} of ${state.document?.totalPageCount ?: 0}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Slider(
-                        value = sliderValue,
-                        onValueChange = { sliderValue = it },
-                        onValueChangeFinished = {
-                            viewModel.onPageChanged(sliderValue.toInt())
-                        },
-                        valueRange = 0f..(state.document?.totalPageCount?.minus(1)?.toFloat() ?: 0f),
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        Text(
+                            text = "${sliderValue.toInt() + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.width(32.dp)
+                        )
+                        Slider(
+                            value = sliderValue,
+                            onValueChange = { sliderValue = it },
+                            onValueChangeFinished = {
+                                viewModel.onPageChanged(sliderValue.toInt())
+                            },
+                            valueRange = 0f..(state.document?.totalPageCount?.minus(1)?.toFloat() ?: 0f),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "${state.document?.totalPageCount ?: 0}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.width(32.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        )
+                    }
                 }
             }
         }

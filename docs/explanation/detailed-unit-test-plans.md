@@ -91,7 +91,8 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Navigation & Paging**
     - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
     - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.
-    - [ ] `onDirectionChanged`: Verifies that the UI state reflects the new direction immediately.
+    - [ ] UI Verification: Verifies that the slider row displays both the current page and max page labels.
+    - [ ] Theme Support: Verifies that text labels use `onSurface` color for visibility in Dark Mode.
 
 ### 3.3 MainViewModel
 - **Navigation State**
