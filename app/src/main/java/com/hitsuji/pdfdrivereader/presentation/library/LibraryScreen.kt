@@ -40,7 +40,7 @@ fun LibraryScreen(
     val state by viewModel.state.collectAsState()
     val isAuthenticated by viewModel.isGoogleAuthenticated.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(1) }
     val tabs = listOf("Local Storage", "Google Drive")
 
     // Rotation animation for sync icon

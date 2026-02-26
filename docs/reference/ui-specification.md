@@ -5,6 +5,7 @@
 ### 1. Library Mode (Document Selection)
 The entry point of the application, used for browsing and selecting PDFs.
 - **Views**: Local Storage list and Google Drive list.
+  - **Default View**: The application opens the **Google Drive** tab by default.
 - **Top Bar**: Always visible.
   - **App Title**: Left-aligned.
   - **Search Icon**: Reveals a filter bar that searches within the **currently active tab** (Local or Cloud).

@@ -31,6 +31,12 @@ class LibraryViewModel @Inject constructor(
     private val _state = MutableStateFlow<LibraryState>(LibraryState.Loading)
     val state: StateFlow<LibraryState> = _state.asStateFlow()
 
+    private val _selectedTab = MutableStateFlow(1) // Default to Google Drive (1)
+    /**
+     * Observable [StateFlow] representing the currently selected tab.
+     */
+    val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
+
     private val _isSyncing = MutableStateFlow(false)
     /**
      * Observable [StateFlow] representing if any synchronization is in progress.
@@ -58,6 +64,7 @@ class LibraryViewModel @Inject constructor(
     private fun observeAuthState() {
         viewModelScope.launch {
             driveService.authState.collect { authenticated ->
+                Log.d("PDFDriveReader", "Auth state changed: authenticated=$authenticated")
                 if (authenticated) {
                     refreshLibrary()
                 }
@@ -68,6 +75,7 @@ class LibraryViewModel @Inject constructor(
     private fun observeDocuments() {
         viewModelScope.launch {
             getDocumentsUseCase().collect { documents ->
+                Log.d("PDFDriveReader", "Observed ${documents.size} documents from repository")
                 _state.value = if (documents.isEmpty()) {
                     LibraryState.Empty
                 } else {
@@ -80,6 +88,7 @@ class LibraryViewModel @Inject constructor(
     fun getSignInIntent(): Any = driveService.getSignInIntent()
 
     fun onSignInResult(account: Any) {
+        Log.d("PDFDriveReader", "onSignInResult processing...")
         driveService.handleSignInResult(account)
     }
 
@@ -89,14 +98,23 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Updates the currently selected tab index.
+     */
+    fun onTabSelected(index: Int) {
+        _selectedTab.value = index
+    }
+
     fun refreshLibrary() {
         viewModelScope.launch {
             _isSyncing.value = true
             try {
+                Log.d("PDFDriveReader", "Refreshing local library...")
                 val localResult = syncLocalLibraryUseCase()
                 handleResult(localResult)
 
                 if (isGoogleAuthenticated.value) {
+                    Log.d("PDFDriveReader", "Refreshing cloud library...")
                     val cloudResult = syncCloudLibraryUseCase()
                     handleResult(cloudResult)
                 }
@@ -108,6 +126,7 @@ class LibraryViewModel @Inject constructor(
 
     private fun handleResult(result: DomainResult<Unit>) {
         if (result is DomainResult.Error) {
+            Log.e("PDFDriveReader", "Operation failed: ${result.message}", result.error)
             viewModelScope.launch {
                 snackbarHostState.showSnackbar(result.message)
             }

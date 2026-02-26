@@ -47,7 +47,7 @@ Target: **Library Mode** and **Reader Mode** flows.
 Tool: **Compose UI Test** / **Espresso**.
 
 ### Flow: Library to Reader
-1. **Initial Launch**: Verify app starts in Library Mode (Local tab).
+1. **Initial Launch**: Verify app starts in Library Mode (**Google Drive** tab).
 2. **Search**: Type a query and verify the list filters correctly.
 3. **Open Document**: Tap a list item and verify transition to Reader Mode.
 4. **Reader Interaction**:
