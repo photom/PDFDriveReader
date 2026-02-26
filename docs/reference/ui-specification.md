@@ -24,6 +24,9 @@ A distraction-free environment for document consumption.
 - **Scroll Physics**:
   - **LTR / RTL**: **Paginated** (snaps to page boundaries) to simulate a physical book.
   - **TTB**: **Continuous** scrolling for a vertical document flow.
+- **Rendering Proportions**:
+  - **Aspect Ratio**: The app must preserve the original width-to-height ratio of each page.
+  - **Best Fit**: Pages must be scaled to fit the display width or height, whichever is reached first, without stretching or distortion.
 - **Page Indicators**: Displayed as "Page [Current] of [Total]" using **1-indexed** numbering (e.g., Page 1 of 50).
 - **Menu Interaction**: ...
 - **Back Navigation**: 
