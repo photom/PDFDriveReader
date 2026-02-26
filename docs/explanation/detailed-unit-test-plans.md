@@ -65,7 +65,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
 
 ### 3.1 LibraryViewModel
 - **States**
-    - [ ] Initial: Shows `Loading` state.
+    - [ ] Initial: Verifies the state starts as `LibraryState.Loading`.
     - [ ] Success: Displays the document list.
     - [ ] Empty: Displays "No PDFs found" state.
 - **Actions**
@@ -79,6 +79,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] `onToggleUI`: Flips the `isUiVisible` state.
     - [ ] `onPageChanged`: Triggers the `SaveReadingPosition` use case and updates `currentPageBitmap`.
 - **Loading & Error Handling**
+    - [ ] `loadDocument`: Verifies `isLoading` starts as `true`.
     - [ ] `loadDocument`: Verifies `isLoading` becomes `false` after successful load.
     - [ ] `loadDocument`: Verifies `isLoading` becomes `false` and `errorMessage` is set when an exception occurs.
 - **Cache & Job Management**
@@ -88,6 +89,11 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
     - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.
     - [ ] `onDirectionChanged`: Verifies that the UI state reflects the new direction immediately.
+
+### 3.3 MainViewModel
+- **Navigation State**
+    - [ ] Session: Verifies that the `AppSession` is correctly loaded from the repository.
+    - [ ] Logic: Verifies the logic for choosing the starting destination (Library vs. Reader) based on session data.
 
 ---
 

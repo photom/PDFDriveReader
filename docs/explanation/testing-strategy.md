@@ -56,6 +56,7 @@ Tool: **Compose UI Test** / **Espresso**.
 5. **Session Restore**:
     - Close the app in Reader Mode.
     - Relaunch and verify it opens directly to the same page/zoom level.
+    - **Back Navigation**: Perform a back gesture and verify the app navigates to **Library Mode** instead of exiting.
 
 ### Flow: Reader Interactions & Edge Cases
 1. **Paging (Swiping)**:

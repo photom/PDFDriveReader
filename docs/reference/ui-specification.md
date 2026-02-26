@@ -30,6 +30,7 @@ A distraction-free environment for document consumption.
   - If **Link History exists**: System Back returns to the previous position.
   - If **Link History is empty** and **UI is visible**: System Back hides the UI overlay.
   - If **Link History is empty** and **UI is hidden**: System Back exits to Library Mode.
+  - **Session Restore Case**: If the app launched directly into Reader Mode (backstack empty), the first "Exit" action (System Back or Close Reader) must navigate to **Library Mode** instead of closing the application.
 
 ## Interaction Models
 | Feature | Behavior |
@@ -75,3 +76,7 @@ To ensure the user is never left without feedback during failed operations:
 ### 3. Rendering Failures
 - **Placeholder**: If a specific page fails to render, display a gray box with a "Refresh" icon in the center.
 - **Notification**: Show a toast message: "Error rendering page [X]".
+
+## Feedback & Animation
+- **Indeterminate Loading**: All asynchronous operations (Library Sync, Document Download, Page Rendering) must display a **cycling indeterminate progress indicator** to inform the user that the process is active.
+- **Centering**: Loading indicators must be centered within their respective viewports (Library list or Reader canvas) to maintain visual balance and prevent clipping.

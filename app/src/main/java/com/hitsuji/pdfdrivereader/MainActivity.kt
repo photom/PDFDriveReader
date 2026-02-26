@@ -9,6 +9,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,7 +28,12 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
+        
+        // Use edge-to-edge
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        
         setContent {
             PdfDriveReaderTheme {
                 AppNavigation()
@@ -46,6 +53,7 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
             CircularProgressIndicator()
         }
     } else {
+        // Determine start destination based on session
         val startDest = remember {
             if (session?.lastMode == AppMode.READER && session?.lastUri != null) {
                 "reader/${java.net.URLEncoder.encode(session?.lastUri!!, "UTF-8")}"
@@ -78,7 +86,17 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
 
                 ReaderScreen(
                     viewModel = viewModel,
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = {
+                        // If we launched directly into Reader, backstack will be empty.
+                        // We must navigate to library instead of finishing the activity.
+                        if (navController.previousBackStackEntry == null) {
+                            navController.navigate("library") {
+                                popUpTo("reader/{uri}") { inclusive = true }
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
                 )
             }
         }

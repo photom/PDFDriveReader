@@ -145,7 +145,9 @@ fun LibraryContent(
     Box(modifier = Modifier.fillMaxSize()) {
         when (state) {
             is LibraryState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
             is LibraryState.Empty -> {
                 Text(

@@ -6,6 +6,7 @@ import com.hitsuji.pdfdrivereader.domain.model.AppSession
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -16,9 +17,21 @@ class MainViewModel @Inject constructor(
     private val appConfigRepository: AppConfigurationRepository
 ) : ViewModel() {
 
+    private val _session = MutableStateFlow<AppSession?>(null)
     /**
      * Observable state of the initial application session.
      */
-    val session: StateFlow<AppSession?> = appConfigRepository.getSession()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val session: StateFlow<AppSession?> = _session.asStateFlow()
+
+    init {
+        loadSession()
+    }
+
+    private fun loadSession() {
+        viewModelScope.launch {
+            appConfigRepository.getSession().collect {
+                _session.value = it
+            }
+        }
+    }
 }
