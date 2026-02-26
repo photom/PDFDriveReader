@@ -66,6 +66,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ### 3.1 LibraryViewModel
 - **States**
     - [ ] Initial: Verifies the state starts as `LibraryState.Loading`.
+    - [ ] Syncing: Verifies `isSyncing` is true during `refreshLibrary()` and false after completion.
     - [ ] Success: Displays the document list.
     - [ ] Empty: Displays "No PDFs found" state.
 - **Actions**

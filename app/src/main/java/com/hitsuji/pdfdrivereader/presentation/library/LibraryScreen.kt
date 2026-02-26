@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,8 +39,21 @@ fun LibraryScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val isAuthenticated by viewModel.isGoogleAuthenticated.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Local Storage", "Google Drive")
+
+    // Rotation animation for sync icon
+    val infiniteTransition = rememberInfiniteTransition(label = "SyncRotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "Rotation"
+    )
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -82,8 +97,19 @@ fun LibraryScreen(
                     IconButton(onClick = { /* TODO: Implement Search */ }) {
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     }
-                    IconButton(onClick = { viewModel.refreshLibrary() }) {
-                        Icon(Icons.Default.Sync, contentDescription = "Sync")
+                    if (isSyncing) {
+                        IconButton(onClick = { }) {
+                            Icon(
+                                Icons.Default.Sync, 
+                                contentDescription = "Syncing...",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.rotate(rotation)
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { viewModel.refreshLibrary() }) {
+                            Icon(Icons.Default.Sync, contentDescription = "Sync")
+                        }
                     }
                 }
             )

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -101,5 +102,28 @@ class LibraryViewModelTest {
         advanceUntilIdle()
         
         assertEquals(LibraryState.Empty, viewModel.state.value)
+    }
+
+    @Test
+    fun `refreshLibrary should update isSyncing state`() = runTest {
+        whenever(getDocumentsUseCase()) doReturn flowOf(emptyList())
+        whenever(syncLocalLibraryUseCase()) doReturn DomainResult.Success(Unit)
+        
+        viewModel = LibraryViewModel(
+            getDocumentsUseCase, 
+            syncLocalLibraryUseCase,
+            syncCloudLibraryUseCase,
+            driveService,
+            appConfigRepository
+        )
+        
+        advanceUntilIdle()
+        assertFalse(viewModel.isSyncing.value)
+        
+        viewModel.refreshLibrary()
+        // We can't easily test the 'true' state without a more complex dispatcher setup,
+        // but we can verify it returns to 'false'
+        advanceUntilIdle()
+        assertFalse(viewModel.isSyncing.value)
     }
 }

@@ -31,6 +31,12 @@ class LibraryViewModel @Inject constructor(
     private val _state = MutableStateFlow<LibraryState>(LibraryState.Loading)
     val state: StateFlow<LibraryState> = _state.asStateFlow()
 
+    private val _isSyncing = MutableStateFlow(false)
+    /**
+     * Observable [StateFlow] representing if any synchronization is in progress.
+     */
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
     val snackbarHostState = SnackbarHostState()
 
     val isGoogleAuthenticated: StateFlow<Boolean> = driveService.authState
@@ -85,12 +91,17 @@ class LibraryViewModel @Inject constructor(
 
     fun refreshLibrary() {
         viewModelScope.launch {
-            val localResult = syncLocalLibraryUseCase()
-            handleResult(localResult)
+            _isSyncing.value = true
+            try {
+                val localResult = syncLocalLibraryUseCase()
+                handleResult(localResult)
 
-            if (isGoogleAuthenticated.value) {
-                val cloudResult = syncCloudLibraryUseCase()
-                handleResult(cloudResult)
+                if (isGoogleAuthenticated.value) {
+                    val cloudResult = syncCloudLibraryUseCase()
+                    handleResult(cloudResult)
+                }
+            } finally {
+                _isSyncing.value = false
             }
         }
     }
