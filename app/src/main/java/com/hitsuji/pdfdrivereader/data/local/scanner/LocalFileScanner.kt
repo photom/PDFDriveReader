@@ -31,10 +31,12 @@ class LocalFileScanner(private val context: android.content.Context) {
         
         if (contentResolver == null) return emptyList()
 
-        val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val collections = mutableListOf<android.net.Uri>()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            collections.add(MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL))
+            collections.add(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL))
         } else {
-            MediaStore.Files.getContentUri("external")
+            collections.add(MediaStore.Files.getContentUri("external"))
         }
 
         val projection = arrayOf(
@@ -44,41 +46,45 @@ class LocalFileScanner(private val context: android.content.Context) {
             MediaStore.Files.FileColumns.RELATIVE_PATH
         )
 
-        val selection = "${MediaStore.Files.FileColumns.MIME_TYPE} = ?"
-        val selectionArgs = arrayOf("application/pdf")
+        val selection = "${MediaStore.Files.FileColumns.MIME_TYPE} = ? OR ${MediaStore.Files.FileColumns.DISPLAY_NAME} LIKE ?"
+        val selectionArgs = arrayOf("application/pdf", "%.pdf")
         val sortOrder = "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
+        val foundPaths = mutableSetOf<String>()
 
-        try {
-            contentResolver.query(
-                collection,
-                projection,
-                selection,
-                selectionArgs,
-                sortOrder
-            )?.use { cursor ->
-                val nameColumn = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
-                val dataColumn = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA)
-                val pathColumn = cursor.getColumnIndex(MediaStore.Files.FileColumns.RELATIVE_PATH)
+        for (collection in collections) {
+            try {
+                contentResolver.query(
+                    collection,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    sortOrder
+                )?.use { cursor ->
+                    val nameColumn = cursor.getColumnIndex(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                    val dataColumn = cursor.getColumnIndex(MediaStore.Files.FileColumns.DATA)
+                    val pathColumn = cursor.getColumnIndex(MediaStore.Files.FileColumns.RELATIVE_PATH)
 
-                while (cursor.moveToNext()) {
-                    val name = if (nameColumn != -1) cursor.getString(nameColumn) else "Unknown"
-                    val fullPath = if (dataColumn != -1) cursor.getString(dataColumn) else ""
-                    val relativePath = if (pathColumn != -1) cursor.getString(pathColumn) else "/"
+                    while (cursor.moveToNext()) {
+                        val name = if (nameColumn != -1) cursor.getString(nameColumn) else "Unknown"
+                        val fullPath = if (dataColumn != -1) cursor.getString(dataColumn) else ""
+                        val relativePath = if (pathColumn != -1) cursor.getString(pathColumn) else "/"
 
-                    if (fullPath.isNotEmpty()) {
-                        pdfList.add(
-                            DocumentMetadata(
-                                id = fullPath,
-                                fileName = name,
-                                locationPath = relativePath ?: "/",
-                                source = SourceType.LOCAL_STORAGE
+                        if (fullPath.isNotEmpty() && fullPath.endsWith(".pdf", ignoreCase = true) && !foundPaths.contains(fullPath)) {
+                            foundPaths.add(fullPath)
+                            pdfList.add(
+                                DocumentMetadata(
+                                    id = fullPath,
+                                    fileName = name ?: "Unknown",
+                                    locationPath = relativePath ?: "/",
+                                    source = SourceType.LOCAL_STORAGE
+                                )
                             )
-                        )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                // Silently fail for this collection and continue
             }
-        } catch (e: Exception) {
-            // Silently fail
         }
         
         return pdfList

@@ -7,6 +7,7 @@ import com.hitsuji.pdfdrivereader.domain.model.SourceType
 import com.hitsuji.pdfdrivereader.domain.model.DomainResult
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.usecase.GetDocumentsUseCase
+import com.hitsuji.pdfdrivereader.domain.usecase.SearchLibraryUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SyncCloudLibraryUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SyncLocalLibraryUseCase
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,7 @@ class LibraryViewModelTest {
     private val getDocumentsUseCase: GetDocumentsUseCase = mock()
     private val syncLocalLibraryUseCase: SyncLocalLibraryUseCase = mock()
     private val syncCloudLibraryUseCase: SyncCloudLibraryUseCase = mock()
+    private val searchLibraryUseCase: SearchLibraryUseCase = SearchLibraryUseCase()
     private val driveService: GoogleDriveService = FakeGoogleDriveService()
     private val appConfigRepository: AppConfigurationRepository = mock()
     private lateinit var viewModel: LibraryViewModel
@@ -58,6 +60,7 @@ class LibraryViewModelTest {
             getDocumentsUseCase, 
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
+            searchLibraryUseCase,
             driveService,
             appConfigRepository
         )
@@ -77,6 +80,7 @@ class LibraryViewModelTest {
             getDocumentsUseCase, 
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
+            searchLibraryUseCase,
             driveService,
             appConfigRepository
         )
@@ -96,6 +100,7 @@ class LibraryViewModelTest {
             getDocumentsUseCase, 
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
+            searchLibraryUseCase,
             driveService,
             appConfigRepository
         )
@@ -113,6 +118,7 @@ class LibraryViewModelTest {
             getDocumentsUseCase, 
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
+            searchLibraryUseCase,
             driveService,
             appConfigRepository
         )
@@ -125,5 +131,72 @@ class LibraryViewModelTest {
         // but we can verify it returns to 'false'
         advanceUntilIdle()
         assertFalse(viewModel.isSyncing.value)
+    }
+
+    @Test
+    fun `onSearchQueryChanged should update state with filtered documents`() = runTest {
+        val docs = listOf(
+            DocumentMetadata("1", "Kotlin Guide.pdf", "/Books", SourceType.LOCAL_STORAGE),
+            DocumentMetadata("2", "Java Guide.pdf", "/Books", SourceType.LOCAL_STORAGE)
+        )
+        whenever(getDocumentsUseCase()) doReturn flowOf(docs)
+        whenever(syncLocalLibraryUseCase()) doReturn DomainResult.Success(Unit)
+        
+        viewModel = LibraryViewModel(
+            getDocumentsUseCase, 
+            syncLocalLibraryUseCase,
+            syncCloudLibraryUseCase,
+            searchLibraryUseCase,
+            driveService,
+            appConfigRepository
+        )
+        advanceUntilIdle()
+
+        // initially all documents should be present
+        var currentState = viewModel.state.value
+        assertTrue(currentState is LibraryState.Success)
+        assertEquals(2, (currentState as LibraryState.Success).documents.size)
+
+        // update search query to filter
+        viewModel.onSearchQueryChanged("Kotlin")
+        advanceUntilIdle()
+        
+        currentState = viewModel.state.value
+        assertTrue(currentState is LibraryState.Success)
+        assertEquals(1, (currentState as LibraryState.Success).documents.size)
+        assertEquals("Kotlin Guide.pdf", (currentState as LibraryState.Success).documents[0].fileName)
+    }
+
+    @Test
+    fun `onSearchQueryChanged empty query should show all documents`() = runTest {
+        val docs = listOf(
+            DocumentMetadata("1", "Kotlin Guide.pdf", "/Books", SourceType.LOCAL_STORAGE),
+            DocumentMetadata("2", "Java Guide.pdf", "/Books", SourceType.LOCAL_STORAGE)
+        )
+        whenever(getDocumentsUseCase()) doReturn flowOf(docs)
+        whenever(syncLocalLibraryUseCase()) doReturn DomainResult.Success(Unit)
+        
+        viewModel = LibraryViewModel(
+            getDocumentsUseCase, 
+            syncLocalLibraryUseCase,
+            syncCloudLibraryUseCase,
+            searchLibraryUseCase,
+            driveService,
+            appConfigRepository
+        )
+        advanceUntilIdle()
+
+        // search first
+        viewModel.onSearchQueryChanged("NonExistent")
+        advanceUntilIdle()
+        assertEquals(LibraryState.Empty, viewModel.state.value)
+
+        // clear search
+        viewModel.onSearchQueryChanged("")
+        advanceUntilIdle()
+        
+        val currentState = viewModel.state.value
+        assertTrue(currentState is LibraryState.Success)
+        assertEquals(2, (currentState as LibraryState.Success).documents.size)
     }
 }

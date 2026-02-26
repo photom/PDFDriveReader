@@ -82,4 +82,26 @@ class RoomPdfRepositoryTest {
             assertEquals("My Books", it.locationPath)
         })
     }
+
+    /**
+     * Verifies that syncLocal correctly fetches files from the scanner and updates the DAO.
+     */
+    @Test
+    fun `syncLocal should fetch files from scanner and update DAO`() = runTest {
+        val mockDoc = com.hitsuji.pdfdrivereader.domain.model.DocumentMetadata(
+            id = "local1",
+            fileName = "Local.pdf",
+            locationPath = "Downloads/",
+            source = com.hitsuji.pdfdrivereader.domain.model.SourceType.LOCAL_STORAGE
+        )
+        whenever(scanner.scanDevice()) doReturn listOf(mockDoc)
+        
+        repository.syncLocal()
+        
+        verify(dao).upsertMetadata(check {
+            assertEquals("local1", it.fileUri)
+            assertEquals("Local.pdf", it.fileName)
+            assertEquals("Downloads/", it.locationPath)
+        })
+    }
 }

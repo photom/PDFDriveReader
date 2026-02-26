@@ -9,6 +9,7 @@ import com.hitsuji.pdfdrivereader.domain.model.AppMode
 import com.hitsuji.pdfdrivereader.domain.model.DomainResult
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.usecase.GetDocumentsUseCase
+import com.hitsuji.pdfdrivereader.domain.usecase.SearchLibraryUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SyncCloudLibraryUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SyncLocalLibraryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,7 @@ class LibraryViewModel @Inject constructor(
     private val getDocumentsUseCase: GetDocumentsUseCase,
     private val syncLocalLibraryUseCase: SyncLocalLibraryUseCase,
     private val syncCloudLibraryUseCase: SyncCloudLibraryUseCase,
+    private val searchLibraryUseCase: SearchLibraryUseCase,
     private val driveService: GoogleDriveService,
     private val appConfigRepository: AppConfigurationRepository
 ) : ViewModel() {
@@ -42,6 +44,9 @@ class LibraryViewModel @Inject constructor(
      * Observable [StateFlow] representing if any synchronization is in progress.
      */
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     val snackbarHostState = SnackbarHostState()
 
@@ -74,15 +79,21 @@ class LibraryViewModel @Inject constructor(
 
     private fun observeDocuments() {
         viewModelScope.launch {
-            getDocumentsUseCase().collect { documents ->
-                Log.d("PDFDriveReader", "Observed ${documents.size} documents from repository")
-                _state.value = if (documents.isEmpty()) {
+            getDocumentsUseCase().combine(_searchQuery) { documents, query ->
+                searchLibraryUseCase(documents, query)
+            }.collect { filteredDocuments ->
+                Log.d("PDFDriveReader", "Observed ${filteredDocuments.size} documents from repository")
+                _state.value = if (filteredDocuments.isEmpty()) {
                     LibraryState.Empty
                 } else {
-                    LibraryState.Success(documents)
+                    LibraryState.Success(filteredDocuments)
                 }
             }
         }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
     }
 
     fun getSignInIntent(): Any = driveService.getSignInIntent()

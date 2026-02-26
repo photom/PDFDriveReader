@@ -24,9 +24,8 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **`GetDocumentsUseCase`**
     - [ ] Logic: Verifies the resulting list is sorted primary by `locationPath` and secondary by `fileName`.
 - **`SyncLocalLibrary`**
-    - [ ] Success: Returns list when repository finds PDFs.
-    - [ ] Empty: Returns empty list when repository is empty.
-    - [ ] Error: Handles repository exceptions gracefully.
+    - [ ] Success: Returns `DomainResult.Success` when the repository sync finishes without exceptions.
+    - [ ] Error: Returns `DomainResult.Error` and handles repository exceptions gracefully when a failure occurs.
 - **`OpenDocument`**
     - [ ] Flow: Fetches metadata -> fetches settings -> returns initialized Document.
     - [ ] Logic: If no settings exist, it applies defaults.
@@ -54,7 +53,14 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] `savePosition()`: Verifies the DAO's `upsert` is called with correct parameters.
     - [ ] `syncLocal()`: Mocks the file scanner and verifies the database is updated with new files.
 
-### 2.2 Mappers
+### 2.2 Local File Scanner
+- **`LocalFileScanner`**
+    - [ ] `scanDevice()`: Verifies it queries `MediaStore.Files` and `MediaStore.Downloads` on Android Q+.
+    - [ ] `scanDevice()`: Verifies it correctly filters files by both `application/pdf` MIME type and `.pdf` extension.
+    - [ ] `scanDevice()`: Verifies it does not return duplicate files if they exist in both collections.
+    - [ ] `scanDevice()`: Verifies it handles `SecurityException` gracefully when permission is denied.
+
+### 2.3 Mappers
 - **`DocumentMapper`**
     - [ ] `toDomain()`: Correctly maps all SQLite columns to the `DocumentMetadata` entity.
     - [ ] `fromDomain()`: Correctly prepares the Entity for SQLite insertion.
@@ -98,7 +104,6 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ### 3.3 MainViewModel
 - **Navigation State**
     - [ ] Session: Verifies that the `AppSession` is correctly loaded from the repository.
-    - [ ] Logic: Verifies the logic for choosing the starting destination (Library vs. Reader) based on session data.
 
 ---
 

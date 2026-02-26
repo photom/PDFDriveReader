@@ -22,9 +22,9 @@ The app must persist the active mode (**Library** vs. **Reader**) across session
 The application must maintain an up-to-date list of PDF files from two primary sources:
 
 #### 1. Local PDF Discovery
-- **Scanning**: Periodically scan the device's public `Documents` and `Downloads` folders for `.pdf` files.
+- **Scanning**: Periodically scan the device using the `MediaStore` API. The app queries both the `MediaStore.Files` and `MediaStore.Downloads` collections to discover `.pdf` files across public directories.
 - **Display**: For each file, the app must retrieve and display the **File Name** and the **Relative Path** (e.g., `/Downloads/Invoices/`).
-- **Permissions**: Use Scoped Storage APIs to access files without requesting legacy external storage permissions.
+- **Permissions & Limitations**: The app relies on `READ_EXTERNAL_STORAGE` for broader access on older Android versions. On modern Android versions (API 30+), Scoped Storage policies restrict the `MediaStore` from returning non-media files (like PDFs) created by other applications. For full visibility of external PDFs on API 30+, future implementations should adopt SAF folder selection (`ACTION_OPEN_DOCUMENT_TREE`) or consider requesting `MANAGE_EXTERNAL_STORAGE`.
 
 #### 2. Google Drive (Cloud) Discovery
 - **Authentication Flow**:
