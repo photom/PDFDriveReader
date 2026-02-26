@@ -118,11 +118,32 @@ fun ReaderScreen(
                             }
                         }
                         ReadingDirection.TTB -> {
-                            VerticalPager(
-                                state = pagerState,
-                                modifier = Modifier.fillMaxSize()
-                            ) { pageIndex ->
-                                PdfPageDisplay(state, pageIndex)
+                            val listState = androidx.compose.foundation.lazy.rememberLazyListState(
+                                initialFirstVisibleItemIndex = state.currentPage
+                            )
+                            
+                            // Sync list scroll back to ViewModel page index
+                            LaunchedEffect(listState.firstVisibleItemIndex) {
+                                if (listState.firstVisibleItemIndex != state.currentPage) {
+                                    viewModel.onPageChanged(listState.firstVisibleItemIndex)
+                                }
+                            }
+
+                            // Sync ViewModel page index changes back to list scroll
+                            LaunchedEffect(state.currentPage) {
+                                if (listState.firstVisibleItemIndex != state.currentPage) {
+                                    listState.scrollToItem(state.currentPage)
+                                }
+                            }
+
+                            androidx.compose.foundation.lazy.LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                items(state.document?.totalPageCount ?: 0) { index ->
+                                    PdfPageDisplay(state, index)
+                                }
                             }
                         }
                     }
@@ -244,8 +265,9 @@ fun ReaderScreen(
 
 @Composable
 fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
+    val isTTB = state.direction == ReadingDirection.TTB
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (isTTB) Modifier.fillMaxWidth().wrapContentHeight() else Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         val bitmap = state.pageCache[pageIndex]
@@ -253,10 +275,19 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
             androidx.compose.foundation.Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "PDF Page ${pageIndex + 1}",
-                modifier = Modifier.wrapContentSize() // Preserves aspect ratio
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight() // Important for TTB concatenation
             )
         } else {
-            CircularProgressIndicator(color = Color.Gray)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(500.dp), // Placeholder height while loading next page
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.Gray)
+            }
         }
     }
 }

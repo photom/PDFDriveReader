@@ -79,7 +79,8 @@ class ReaderViewModel @Inject constructor(
         cacheJob?.cancel()
         cacheJob = viewModelScope.launch {
             val totalPages = _state.value.document?.totalPageCount ?: return@launch
-            val indicesToLoad = listOf(centerIndex - 1, centerIndex, centerIndex + 1)
+            // Cache window: 2 pages before, 2 pages after
+            val indicesToLoad = listOf(centerIndex - 2, centerIndex - 1, centerIndex, centerIndex + 1, centerIndex + 2)
                 .filter { it in 0 until totalPages }
 
             indicesToLoad.forEach { index ->
