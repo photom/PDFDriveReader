@@ -8,11 +8,7 @@ import com.hitsuji.pdfdrivereader.domain.model.AppMode
 import com.hitsuji.pdfdrivereader.domain.model.PagePosition
 import com.hitsuji.pdfdrivereader.domain.model.ReadingDirection
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
-import com.hitsuji.pdfdrivereader.domain.usecase.GetPageImageUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.GetPageSizeUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.OpenDocumentUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingDirectionUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingPositionUseCase
+import com.hitsuji.pdfdrivereader.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +29,7 @@ class ReaderViewModel @Inject constructor(
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase,
     private val getPageImageUseCase: GetPageImageUseCase,
     private val getPageSizeUseCase: GetPageSizeUseCase,
+    private val closeDocumentUseCase: CloseDocumentUseCase,
     private val appConfigRepository: AppConfigurationRepository
 ) : ViewModel() {
 
@@ -41,7 +38,6 @@ class ReaderViewModel @Inject constructor(
 
     private var cacheJob: Job? = null
 
-    // Target screen dimensions for rendering (Ideally injected or measured from UI)
     private var screenWidth: Int = 1080
     private var screenHeight: Int = 1920
 
@@ -104,12 +100,11 @@ class ReaderViewModel @Inject constructor(
             val pdfWidth = originalSize.first
             val pdfHeight = originalSize.second
             
-            // Calculate best fit dimensions preserving aspect ratio
             val scale = min(screenWidth.toFloat() / pdfWidth, screenHeight.toFloat() / pdfHeight)
             val targetWidth = (pdfWidth * scale).toInt()
             val targetHeight = (pdfHeight * scale).toInt()
 
-            Log.d("PDFDriveReader", "Reader: Rendering page $index at ${targetWidth}x${targetHeight}")
+            Log.d("PDFDriveReader", "Reader: Requesting bitmap for page $index")
             val bitmap = getPageImageUseCase(uri, index, targetWidth, targetHeight) as Bitmap
             
             _state.update { currentState ->
@@ -144,6 +139,14 @@ class ReaderViewModel @Inject constructor(
         val documentId = _state.value.document?.id ?: return
         viewModelScope.launch {
             saveReadingDirectionUseCase(documentId, direction)
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        viewModelScope.launch {
+            Log.d("PDFDriveReader", "Reader: ViewModel cleared, closing document session")
+            closeDocumentUseCase()
         }
     }
 }

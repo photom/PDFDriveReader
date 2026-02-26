@@ -37,10 +37,6 @@ class RoomPdfRepository @Inject constructor(
         }
     }
 
-    /**
-     * Resolves a document URI to a local [File].
-     * If the document is from Google Drive, it ensures the file is cached locally.
-     */
     private suspend fun resolveUriToFile(uri: String): File {
         val metadata = dao.getMetadataByUri(uri)
             ?: throw IllegalStateException("Metadata not found for: $uri")
@@ -61,7 +57,6 @@ class RoomPdfRepository @Inject constructor(
         if (!file.exists()) {
             throw IllegalStateException("PDF file not found at: ${file.absolutePath}")
         }
-        // Force the returned PdfDocument to keep the original URI as its ID
         renderer.openDocument(file).copy(id = uri)
     }
 
@@ -94,8 +89,8 @@ class RoomPdfRepository @Inject constructor(
     }
 
     override suspend fun getPageSize(uri: String, pageIndex: Int): Pair<Int, Int> = withContext(Dispatchers.IO) {
-        val file = resolveUriToFile(uri)
-        renderer.getPageSize(file, pageIndex)
+        // Stateful renderer is already open after getDocument call
+        renderer.getPageSize(pageIndex)
     }
 
     override suspend fun getPageImage(
@@ -104,8 +99,12 @@ class RoomPdfRepository @Inject constructor(
         width: Int, 
         height: Int
     ): Any = withContext(Dispatchers.IO) {
-        val file = resolveUriToFile(uri)
-        renderer.renderPage(file, pageIndex, width, height)
+        // No file opening here! Uses the active session from Step 1.
+        renderer.renderPage(pageIndex, width, height)
+    }
+
+    override suspend fun closeDocument() = withContext(Dispatchers.IO) {
+        renderer.close()
     }
 
     override suspend fun syncLocal() = withContext(Dispatchers.IO) {

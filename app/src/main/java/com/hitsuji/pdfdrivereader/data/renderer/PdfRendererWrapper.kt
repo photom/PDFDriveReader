@@ -9,93 +9,88 @@ import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
 import java.io.File
 
 /**
- * Android-specific wrapper for the native [PdfRenderer].
+ * Stateful wrapper for the native [PdfRenderer].
  * 
- * Handles the opening of [ParcelFileDescriptor] and ensures resources are 
- * properly closed after use.
+ * Maintains an open document session to optimize multi-page rendering.
  */
 class PdfRendererWrapper {
 
+    private var activePfd: ParcelFileDescriptor? = null
+    private var activeRenderer: PdfRenderer? = null
+    private var activeFile: File? = null
+
     /**
-     * Opens a PDF file and returns its metadata.
+     * Opens a PDF file and caches the renderer for subsequent page requests.
      * 
-     * @param file The local [File] to open.
-     * @return A [PdfDocument] containing the page count and URI.
+     * @param file The PDF file.
+     * @return [PdfDocument] metadata.
      */
     fun openDocument(file: File): PdfDocument {
-        Log.d("PDFDriveReader", "PdfRenderer: Opening document ${file.absolutePath}")
-        var pfd: ParcelFileDescriptor? = null
-        var renderer: PdfRenderer? = null
+        if (activeFile?.absolutePath == file.absolutePath && activeRenderer != null) {
+            return PdfDocument(file.absolutePath, activeRenderer!!.pageCount)
+        }
+
+        close() // Close existing session if any
+
+        Log.d("PDFDriveReader", "PdfRenderer: Opening NEW session for ${file.name}")
         try {
-            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            renderer = PdfRenderer(pfd)
-            val pageCount = renderer.pageCount
-            return PdfDocument(
-                id = file.absolutePath,
-                totalPageCount = pageCount
-            )
+            val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val renderer = PdfRenderer(pfd)
+            activePfd = pfd
+            activeRenderer = renderer
+            activeFile = file
+            
+            return PdfDocument(id = file.absolutePath, totalPageCount = renderer.pageCount)
         } catch (e: Exception) {
-            Log.e("PDFDriveReader", "PdfRenderer: Error opening document", e)
+            Log.e("PDFDriveReader", "PdfRenderer: Failed to open document", e)
             throw e
-        } finally {
-            renderer?.close()
-            pfd?.close()
         }
     }
 
     /**
-     * Retrieves the original size of a specific page in points (1/72 inch).
-     * 
-     * @param file The PDF file.
-     * @param pageIndex The 0-based page index.
-     * @return A Pair of (Width, Height).
+     * Retrieves the original size of a specific page from the active session.
      */
-    fun getPageSize(file: File, pageIndex: Int): Pair<Int, Int> {
-        var pfd: ParcelFileDescriptor? = null
-        var renderer: PdfRenderer? = null
+    fun getPageSize(pageIndex: Int): Pair<Int, Int> {
+        val renderer = activeRenderer ?: throw IllegalStateException("No active PDF session")
         var page: PdfRenderer.Page? = null
         try {
-            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            renderer = PdfRenderer(pfd)
             page = renderer.openPage(pageIndex)
             return Pair(page.width, page.height)
         } finally {
             page?.close()
-            renderer?.close()
-            pfd?.close()
         }
     }
 
     /**
-     * Renders a specific page to a [Bitmap].
-     * 
-     * @param file The PDF file.
-     * @param pageIndex The 0-based page index.
-     * @param width The target bitmap width.
-     * @param height The target bitmap height.
-     * @return A [Bitmap] of the rendered page.
+     * Renders a page using the currently active renderer.
      */
-    fun renderPage(file: File, pageIndex: Int, width: Int, height: Int): Bitmap {
-        var pfd: ParcelFileDescriptor? = null
-        var renderer: PdfRenderer? = null
+    fun renderPage(pageIndex: Int, width: Int, height: Int): Bitmap {
+        val renderer = activeRenderer ?: throw IllegalStateException("No active PDF session")
+        
         var page: PdfRenderer.Page? = null
         try {
-            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            renderer = PdfRenderer(pfd)
             page = renderer.openPage(pageIndex)
-            
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(Color.WHITE)
-            
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
             return bitmap
         } catch (e: Exception) {
-            Log.e("PDFDriveReader", "PdfRenderer: Error rendering page $pageIndex", e)
+            Log.e("PDFDriveReader", "PdfRenderer: Failed to render page $pageIndex", e)
             throw e
         } finally {
             page?.close()
-            renderer?.close()
-            pfd?.close()
         }
+    }
+
+    /**
+     * Closes the active PDF session and releases all native resources.
+     */
+    fun close() {
+        activeRenderer?.close()
+        activePfd?.close()
+        activeRenderer = null
+        activePfd = null
+        activeFile = null
+        Log.d("PDFDriveReader", "PdfRenderer: Session closed")
     }
 }

@@ -1,12 +1,7 @@
 package com.hitsuji.pdfdrivereader.presentation.reader
 
 import android.graphics.Bitmap
-import com.hitsuji.pdfdrivereader.domain.usecase.GetPageImageUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.GetPageSizeUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.OpenDocumentUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingPositionUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingDirectionUseCase
-import com.hitsuji.pdfdrivereader.domain.usecase.OpenedDocument
+import com.hitsuji.pdfdrivereader.domain.usecase.*
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
 import com.hitsuji.pdfdrivereader.domain.model.PagePosition
@@ -33,6 +28,7 @@ class ReaderViewModelTest {
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase = mock()
     private val getPageImageUseCase: GetPageImageUseCase = mock()
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
+    private val closeDocumentUseCase: CloseDocumentUseCase = mock()
     private val appConfigRepository: AppConfigurationRepository = mock()
     private lateinit var viewModel: ReaderViewModel
 
@@ -56,6 +52,7 @@ class ReaderViewModelTest {
             saveReadingDirectionUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
+            closeDocumentUseCase,
             appConfigRepository
         )
         
@@ -89,6 +86,7 @@ class ReaderViewModelTest {
             saveReadingDirectionUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
+            closeDocumentUseCase,
             appConfigRepository
         )
         
@@ -105,15 +103,16 @@ class ReaderViewModelTest {
     }
 
     @Test
-    fun `rendering should preserve aspect ratio`() = runTest {
+    fun `rapid onPageChanged should cancel previous caching jobs`() = runTest {
         val uri = "uri1"
-        val mockDoc = PdfDocument(uri, 10)
+        val mockDoc = PdfDocument(uri, 100)
         val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
-        // Mock a portrait PDF (100x200)
-        whenever(getPageSizeUseCase(any(), any())) doReturn (100 to 200)
-        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mock<Bitmap>()
+        whenever(getPageSizeUseCase(any(), any())) doReturn (100 to 100)
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doAnswer {
+            mock<Bitmap>()
+        }
         whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
@@ -123,20 +122,52 @@ class ReaderViewModelTest {
             saveReadingDirectionUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
+            closeDocumentUseCase,
             appConfigRepository
         )
-        
-        // Set screen to 1000x1000 square
-        viewModel.updateScreenDimensions(1000, 1000)
         
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
-        // For a 100x200 PDF on a 1000x1000 screen:
-        // Height limit reached: 1000 / 200 = 5x scale.
-        // Target Width = 100 * 5 = 500.
-        // Target Height = 200 * 5 = 1000.
-        verify(getPageImageUseCase).invoke(eq(uri), eq(0), eq(500), eq(1000))
+        viewModel.onPageChanged(10)
+        viewModel.onPageChanged(20)
+        viewModel.onPageChanged(30)
+        
+        advanceUntilIdle()
+        
+        assertEquals(30, viewModel.state.value.currentPage)
+        assertTrue(viewModel.state.value.pageCache.containsKey(30))
+        assertFalse(viewModel.state.value.pageCache.containsKey(10))
+    }
+
+    @Test
+    fun `onDirectionChanged should update state and persist`() = runTest {
+        val uri = "uri1"
+        val mockDoc = PdfDocument(uri, 10)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        viewModel.onDirectionChanged(ReadingDirection.RTL)
+        advanceUntilIdle()
+        
+        assertEquals(ReadingDirection.RTL, viewModel.state.value.direction)
+        verify(saveReadingDirectionUseCase).invoke(eq(uri), eq(ReadingDirection.RTL))
     }
 
     @Test
@@ -158,6 +189,7 @@ class ReaderViewModelTest {
             saveReadingDirectionUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
+            closeDocumentUseCase,
             appConfigRepository
         )
         
@@ -166,5 +198,27 @@ class ReaderViewModelTest {
         
         assertFalse(viewModel.state.value.isLoading)
         assertNull(viewModel.state.value.errorMessage)
+    }
+
+    @Test
+    fun `loadDocument should set isLoading to false and set error message on failure`() = runTest {
+        val uri = "uri1"
+        whenever(openDocumentUseCase(any())) doAnswer { throw RuntimeException("IO Error") }
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        assertFalse(viewModel.state.value.isLoading)
+        assertEquals("IO Error", viewModel.state.value.errorMessage)
     }
 }

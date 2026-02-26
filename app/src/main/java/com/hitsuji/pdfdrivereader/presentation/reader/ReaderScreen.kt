@@ -185,13 +185,23 @@ fun ReaderScreen(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    var sliderValue by remember { mutableFloatStateOf(state.currentPage.toFloat()) }
+                    
+                    // Keep local slider synced with state when NOT dragging
+                    LaunchedEffect(state.currentPage) {
+                        sliderValue = state.currentPage.toFloat()
+                    }
+
                     Text(
-                        "Page ${state.currentPage + 1} of ${state.document?.totalPageCount ?: 0}",
+                        "Page ${sliderValue.toInt() + 1} of ${state.document?.totalPageCount ?: 0}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Slider(
-                        value = state.currentPage.toFloat(),
-                        onValueChange = { viewModel.onPageChanged(it.toInt()) },
+                        value = sliderValue,
+                        onValueChange = { sliderValue = it },
+                        onValueChangeFinished = {
+                            viewModel.onPageChanged(sliderValue.toInt())
+                        },
                         valueRange = 0f..(state.document?.totalPageCount?.minus(1)?.toFloat() ?: 0f),
                         modifier = Modifier.fillMaxWidth()
                     )

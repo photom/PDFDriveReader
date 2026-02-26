@@ -79,6 +79,11 @@ interface PdfRepository {
     suspend fun getPageImage(uri: String, pageIndex: Int, width: Int, height: Int): Any
 
     /**
+     * Closes the active document and releases system resources.
+     */
+    suspend fun closeDocument()
+
+    /**
      * Triggers an asynchronous scan of the local filesystem for new PDFs.
      */
     suspend fun syncLocal()

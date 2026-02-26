@@ -41,6 +41,8 @@ A distraction-free environment for document consumption.
 | Mode Transition | Tapping a PDF in Library Mode opens Reader Mode. |
 | UI Visibility | In Reader Mode, a single tap toggles the menu/UI overlay. |
 | Scroll | Swipe gestures in both modes. |
+| Page Slider | **Dragging**: Updates the page number indicator in real-time for immediate feedback. |
+| Page Slider | **Release**: Triggers the actual page jump and document rendering upon finger release to prevent hanging. |
 | Zoom | Pinch gestures in Reader Mode (100% - 500%). |
 | Zoom Reset | Double-tap in Reader Mode to 100%. |
 | Navigation History | Link jumps save the previous position; swipe back to return. |
