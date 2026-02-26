@@ -62,7 +62,12 @@ Tool: **Compose UI Test** / **Espresso**.
     - **LTR Mode**: Swipe right-to-left and verify page increments.
     - **RTL Mode**: Swipe left-to-right and verify page increments (Manga style).
     - **TTB Mode**: Swipe bottom-to-top and verify continuous scroll or page transition.
-2. **Orientation Change**:
+    - **Sliding Cache**: Verify that swiping shows the next page instantly if already cached, and that the "loading" state only appears for non-neighboring pages.
+2. **Concurrency (Fast Swiping)**:
+    - Swipe through 10 pages rapidly.
+    - Verify that only the last 3-page window remains in memory.
+    - Verify that background jobs for skipped pages are cancelled promptly (monitored via Debug logs).
+3. **Orientation Change**:
     - Open a PDF to page 15, rotate to Landscape.
     - Verify the page remains at 15 and the UI overlay state (visible/hidden) is preserved.
 2. **Missing File**:

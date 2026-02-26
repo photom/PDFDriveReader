@@ -81,6 +81,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Loading & Error Handling**
     - [ ] `loadDocument`: Verifies `isLoading` becomes `false` after successful load.
     - [ ] `loadDocument`: Verifies `isLoading` becomes `false` and `errorMessage` is set when an exception occurs.
+- **Cache & Job Management**
+    - [ ] `onPageChanged`: Verifies that a 3-page sliding window is maintained in `pageCache`.
+    - [ ] `onPageChanged`: Verifies that any previous active caching job is cancelled when a new page is selected.
 - **Navigation & Paging**
     - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
     - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.

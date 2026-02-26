@@ -13,6 +13,7 @@ import com.hitsuji.pdfdrivereader.domain.usecase.OpenDocumentUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingDirectionUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingPositionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,8 @@ class ReaderViewModel @Inject constructor(
     private val _state = MutableStateFlow(ReaderState())
     val state: StateFlow<ReaderState> = _state.asStateFlow()
 
+    private var cacheJob: Job? = null
+
     fun loadDocument(uri: String) {
         Log.d("PDFDriveReader", "Reader: loadDocument triggered for $uri")
         viewModelScope.launch {
@@ -55,36 +58,38 @@ class ReaderViewModel @Inject constructor(
                 // Load the initial page immediately
                 loadPageIntoCache(uri, openedDoc.position.pageIndex)
                 
-                // Persist session
-                appConfigRepository.saveMode(AppMode.READER)
                 appConfigRepository.saveLastUri(uri)
+                appConfigRepository.saveMode(AppMode.READER)
                 
-                // Trigger neighbor caching in the background
-                launch { refreshPageCache(uri, openedDoc.position.pageIndex) }
+                // Trigger neighbor caching
+                refreshCache(uri, openedDoc.position.pageIndex)
                 
             } catch (e: Exception) {
                 Log.e("PDFDriveReader", "Reader: Fatal error opening document", e)
                 _state.update { it.copy(errorMessage = e.message ?: "Failed to open document") }
             } finally {
-                Log.d("PDFDriveReader", "Reader: Setting isLoading = false")
                 _state.update { it.copy(isLoading = false) }
             }
         }
     }
 
-    private suspend fun refreshPageCache(uri: String, centerIndex: Int) {
-        val totalPages = _state.value.document?.totalPageCount ?: return
-        val indicesToLoad = listOf(centerIndex - 1, centerIndex, centerIndex + 1)
-            .filter { it in 0 until totalPages }
+    private fun refreshCache(uri: String, centerIndex: Int) {
+        cacheJob?.cancel() // Cancel previous caching job to avoid race conditions and redundant work
+        cacheJob = viewModelScope.launch {
+            val totalPages = _state.value.document?.totalPageCount ?: return@launch
+            val indicesToLoad = listOf(centerIndex - 1, centerIndex, centerIndex + 1)
+                .filter { it in 0 until totalPages }
 
-        indicesToLoad.forEach { index ->
-            if (!_state.value.pageCache.containsKey(index)) {
-                loadPageIntoCache(uri, index)
+            indicesToLoad.forEach { index ->
+                if (!_state.value.pageCache.containsKey(index)) {
+                    loadPageIntoCache(uri, index)
+                }
             }
-        }
 
-        _state.update { currentState ->
-            currentState.copy(pageCache = currentState.pageCache.filterKeys { it in indicesToLoad })
+            // Clean up cache
+            _state.update { currentState ->
+                currentState.copy(pageCache = currentState.pageCache.filterKeys { it in indicesToLoad })
+            }
         }
     }
 
@@ -98,7 +103,12 @@ class ReaderViewModel @Inject constructor(
             }
             Log.d("PDFDriveReader", "Reader: Page $index cached")
         } catch (e: Exception) {
-            Log.e("PDFDriveReader", "Reader: Failed to cache page $index", e)
+            // Only log if it's not a cancellation (cancellations are expected during fast swiping)
+            if (e !is kotlinx.coroutines.CancellationException) {
+                Log.e("PDFDriveReader", "Reader: Failed to cache page $index", e)
+            } else {
+                Log.d("PDFDriveReader", "Reader: Caching for page $index was cancelled")
+            }
         }
     }
 
@@ -110,9 +120,12 @@ class ReaderViewModel @Inject constructor(
         val documentId = _state.value.document?.id ?: return
         if (index == _state.value.currentPage) return
 
+        Log.d("PDFDriveReader", "Reader: Page changed to $index")
         _state.update { it.copy(currentPage = index) }
+        
+        refreshCache(documentId, index)
+        
         viewModelScope.launch {
-            refreshPageCache(documentId, index)
             saveReadingPositionUseCase(documentId, PagePosition(index, _state.value.zoomLevel))
         }
     }

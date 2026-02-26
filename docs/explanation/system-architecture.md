@@ -160,4 +160,5 @@ The app actively manages memory to prevent `OutOfMemory` errors during intensive
 ## 8. Interaction Summary
 1.  **Dependency Rule**: Dependencies only point inwards. The `Presentation` layer depends on `Domain`, and the `Data` layer depends on `Domain` (interfaces).
 2.  **Reactive Streams**: The `Data` layer exposes `Flow` objects from the SQLite cache, which the `Domain` use cases pass to the `ViewModels`. This ensures the UI is always in sync with the persistent state.
-3.  **Immersive State**: The `ReaderViewModel` holds the `isUiVisible` boolean state, which is toggled by user taps and used by the `ReaderView` to show/hide overlays.
+3.  **Sliding Window Cache**: The `ReaderViewModel` implements a 3-page look-ahead/behind bitmap cache. It reactively updates this cache based on user swiping, ensuring that neighbor pages are pre-rendered before they enter the viewport.
+4.  **Immersive State**: The `ReaderViewModel` holds the `isUiVisible` boolean state, which is toggled by user taps and used by the `ReaderView` to show/hide overlays.

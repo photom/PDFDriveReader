@@ -101,6 +101,48 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `rapid onPageChanged should cancel previous caching jobs`() = runTest {
+        val uri = "uri1"
+        val mockDoc = PdfDocument(uri, 100)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doAnswer {
+            // No need for thread sleep here, we just want to verify the latest window is present
+            mock<Bitmap>()
+        }
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        // Trigger multiple page changes rapidly
+        viewModel.onPageChanged(10)
+        viewModel.onPageChanged(20)
+        viewModel.onPageChanged(30)
+        
+        advanceUntilIdle()
+        
+        // Final state should be page 30
+        assertEquals(30, viewModel.state.value.currentPage)
+        // Window should be 29, 30, 31
+        assertTrue(viewModel.state.value.pageCache.containsKey(30))
+        assertTrue(viewModel.state.value.pageCache.containsKey(29))
+        assertTrue(viewModel.state.value.pageCache.containsKey(31))
+        // Old pages (e.g., 10) should have been purged or never fully cached
+        assertFalse(viewModel.state.value.pageCache.containsKey(10))
+    }
+
+    @Test
     fun `onDirectionChanged should update state and persist`() = runTest {
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, 10)
