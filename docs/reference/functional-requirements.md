@@ -68,6 +68,13 @@ Since `PdfRenderer` requires local file access, documents from Google Drive must
 - **Persistence**: Materialized files should be kept in the cache until the space is needed, using the `file_uri` (Drive ID) as the filename.
 - **Cache Tracking**: The Library list must dynamically check for the existence of the cached file and mark the item as "Cached" in the UI.
 
+### Sliding Page Cache & Job Management
+To ensure a smooth swiping experience and optimal resource usage:
+- **Sliding Window**: The app must maintain a 5-page cache window `[Current-2, Current-1, Current, Current+1, Current+2]`.
+- **Pre-emptive Caching**: When the current page changes, the app must automatically trigger background rendering for the new neighbors to avoid showing loading spinners during normal reading.
+- **Job Cancellation**: If a user swiping causes multiple page changes in rapid succession, any active background caching job must be explicitly cancelled before starting a new one.
+- **Exception Safety**: The system must distinguish between fatal rendering errors and expected job cancellations during navigation.
+
 ### High-Zoom Rendering (Tiling Strategy)
 To support 100%-500% zoom without `OutOfMemory` errors:
 - **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution.

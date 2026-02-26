@@ -84,7 +84,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] `loadDocument`: Verifies `isLoading` becomes `false` after successful load.
     - [ ] `loadDocument`: Verifies `isLoading` becomes `false` and `errorMessage` is set when an exception occurs.
 - **Cache & Job Management**
-    - [ ] `onPageChanged`: Verifies that a 3-page sliding window is maintained in `pageCache`.
+    - [ ] `onPageChanged`: Verifies that a 5-page sliding window is maintained in `pageCache`.
     - [ ] `onPageChanged`: Verifies that heavy rendering is deferred until explicit calls (supporting UI "onRelease" logic).
     - [ ] `loadPageIntoCache`: Verifies that rendering resolution preserves the aspect ratio of the original PDF page.
     - [ ] `onPageChanged`: Verifies that any previous active caching job is cancelled when a new page is selected.

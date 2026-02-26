@@ -97,9 +97,12 @@ class ReaderViewModelTest {
         advanceUntilIdle()
         
         assertEquals(5, viewModel.state.value.currentPage)
+        // Verify multiple pages around 5 were loaded (3, 4, 5, 6, 7)
+        assertTrue(viewModel.state.value.pageCache.containsKey(3))
         assertTrue(viewModel.state.value.pageCache.containsKey(4))
         assertTrue(viewModel.state.value.pageCache.containsKey(5))
         assertTrue(viewModel.state.value.pageCache.containsKey(6))
+        assertTrue(viewModel.state.value.pageCache.containsKey(7))
     }
 
     @Test
@@ -136,7 +139,13 @@ class ReaderViewModelTest {
         advanceUntilIdle()
         
         assertEquals(30, viewModel.state.value.currentPage)
+        // Window should be 28, 29, 30, 31, 32
+        assertTrue(viewModel.state.value.pageCache.containsKey(28))
+        assertTrue(viewModel.state.value.pageCache.containsKey(29))
         assertTrue(viewModel.state.value.pageCache.containsKey(30))
+        assertTrue(viewModel.state.value.pageCache.containsKey(31))
+        assertTrue(viewModel.state.value.pageCache.containsKey(32))
+        // Old pages (e.g., 10) should have been purged or never fully cached
         assertFalse(viewModel.state.value.pageCache.containsKey(10))
     }
 

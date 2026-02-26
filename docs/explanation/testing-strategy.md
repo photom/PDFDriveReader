@@ -69,7 +69,7 @@ Tool: **Compose UI Test** / **Espresso**.
     - **Page Slider**: Drag the slider rapidly across the entire document.
     - Verify that the app remains responsive (no hangs).
     - Verify that the final page is rendered only after the slider is released.
-    - Verify that only the last 3-page window remains in memory.
+    - Verify that only the last 5-page window remains in memory.
 3. **Dark Mode & Themes**:
     - Switch the device to Dark Mode.
     - Open the Reader and verify that all text labels (Page count, Slider labels) are clearly visible.
