@@ -61,6 +61,13 @@ interface PdfRepository {
     suspend fun getSavedDirection(uri: String): ReadingDirection?
 
     /**
+     * Retrieves the original size of a specific page.
+     * 
+     * @return Pair of (Width, Height).
+     */
+    suspend fun getPageSize(uri: String, pageIndex: Int): Pair<Int, Int>
+
+    /**
      * Retrieves a rendered image of a specific page.
      * 
      * @param uri The document identifier.

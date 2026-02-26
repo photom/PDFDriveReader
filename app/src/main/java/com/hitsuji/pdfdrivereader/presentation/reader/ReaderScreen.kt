@@ -34,29 +34,35 @@ fun ReaderScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showDirectionDialog by remember { mutableStateOf(false) }
 
-    // Synchronize pager state with ViewModel state, keyed by document ID to force reset on load
-    val pagerState = rememberPagerState(
-        initialPage = state.currentPage,
-        pageCount = { state.document?.totalPageCount ?: 0 }
-    )
-
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage != state.currentPage) {
-            viewModel.onPageChanged(pagerState.currentPage)
-        }
-    }
-
-    LaunchedEffect(state.currentPage) {
-        if (pagerState.currentPage != state.currentPage) {
-            pagerState.scrollToPage(state.currentPage)
-        }
-    }
-
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        val widthPx = constraints.maxWidth
+        val heightPx = constraints.maxHeight
+        
+        LaunchedEffect(widthPx, heightPx) {
+            viewModel.updateScreenDimensions(widthPx, heightPx)
+        }
+
+        val pagerState = rememberPagerState(
+            initialPage = state.currentPage,
+            pageCount = { state.document?.totalPageCount ?: 0 }
+        )
+
+        LaunchedEffect(pagerState.currentPage) {
+            if (pagerState.currentPage != state.currentPage) {
+                viewModel.onPageChanged(pagerState.currentPage)
+            }
+        }
+
+        LaunchedEffect(state.currentPage) {
+            if (pagerState.currentPage != state.currentPage) {
+                pagerState.scrollToPage(state.currentPage)
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -217,7 +223,7 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
             androidx.compose.foundation.Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "PDF Page ${pageIndex + 1}",
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.wrapContentSize() // Preserves aspect ratio
             )
         } else {
             CircularProgressIndicator(color = Color.Gray)

@@ -93,6 +93,11 @@ class RoomPdfRepository @Inject constructor(
         }
     }
 
+    override suspend fun getPageSize(uri: String, pageIndex: Int): Pair<Int, Int> = withContext(Dispatchers.IO) {
+        val file = resolveUriToFile(uri)
+        renderer.getPageSize(file, pageIndex)
+    }
+
     override suspend fun getPageImage(
         uri: String, 
         pageIndex: Int, 

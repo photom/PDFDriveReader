@@ -9,6 +9,7 @@ import com.hitsuji.pdfdrivereader.domain.model.PagePosition
 import com.hitsuji.pdfdrivereader.domain.model.ReadingDirection
 import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.usecase.GetPageImageUseCase
+import com.hitsuji.pdfdrivereader.domain.usecase.GetPageSizeUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.OpenDocumentUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingDirectionUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SaveReadingPositionUseCase
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.min
 
 /**
  * ViewModel for the immersive Reader screen.
@@ -30,6 +32,7 @@ class ReaderViewModel @Inject constructor(
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase,
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase,
     private val getPageImageUseCase: GetPageImageUseCase,
+    private val getPageSizeUseCase: GetPageSizeUseCase,
     private val appConfigRepository: AppConfigurationRepository
 ) : ViewModel() {
 
@@ -38,14 +41,21 @@ class ReaderViewModel @Inject constructor(
 
     private var cacheJob: Job? = null
 
+    // Target screen dimensions for rendering (Ideally injected or measured from UI)
+    private var screenWidth: Int = 1080
+    private var screenHeight: Int = 1920
+
+    fun updateScreenDimensions(width: Int, height: Int) {
+        screenWidth = width
+        screenHeight = height
+    }
+
     fun loadDocument(uri: String) {
         Log.d("PDFDriveReader", "Reader: loadDocument triggered for $uri")
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null, pageCache = emptyMap()) }
             try {
                 val openedDoc = openDocumentUseCase(uri)
-                Log.d("PDFDriveReader", "Reader: Metadata loaded. Pages=${openedDoc.document.totalPageCount}")
-                
                 _state.update { 
                     it.copy(
                         document = openedDoc.document,
@@ -55,13 +65,9 @@ class ReaderViewModel @Inject constructor(
                     )
                 }
                 
-                // Load the initial page immediately
                 loadPageIntoCache(uri, openedDoc.position.pageIndex)
-                
                 appConfigRepository.saveLastUri(uri)
                 appConfigRepository.saveMode(AppMode.READER)
-                
-                // Trigger neighbor caching
                 refreshCache(uri, openedDoc.position.pageIndex)
                 
             } catch (e: Exception) {
@@ -74,7 +80,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun refreshCache(uri: String, centerIndex: Int) {
-        cacheJob?.cancel() // Cancel previous caching job to avoid race conditions and redundant work
+        cacheJob?.cancel()
         cacheJob = viewModelScope.launch {
             val totalPages = _state.value.document?.totalPageCount ?: return@launch
             val indicesToLoad = listOf(centerIndex - 1, centerIndex, centerIndex + 1)
@@ -86,7 +92,6 @@ class ReaderViewModel @Inject constructor(
                 }
             }
 
-            // Clean up cache
             _state.update { currentState ->
                 currentState.copy(pageCache = currentState.pageCache.filterKeys { it in indicesToLoad })
             }
@@ -95,19 +100,25 @@ class ReaderViewModel @Inject constructor(
 
     private suspend fun loadPageIntoCache(uri: String, index: Int) {
         try {
-            Log.d("PDFDriveReader", "Reader: Requesting bitmap for page $index")
-            val bitmap = getPageImageUseCase(uri, index, 1080, 1920) as Bitmap
+            val originalSize = getPageSizeUseCase(uri, index)
+            val pdfWidth = originalSize.first
+            val pdfHeight = originalSize.second
+            
+            // Calculate best fit dimensions preserving aspect ratio
+            val scale = min(screenWidth.toFloat() / pdfWidth, screenHeight.toFloat() / pdfHeight)
+            val targetWidth = (pdfWidth * scale).toInt()
+            val targetHeight = (pdfHeight * scale).toInt()
+
+            Log.d("PDFDriveReader", "Reader: Rendering page $index at ${targetWidth}x${targetHeight}")
+            val bitmap = getPageImageUseCase(uri, index, targetWidth, targetHeight) as Bitmap
+            
             _state.update { currentState ->
                 val newCache = currentState.pageCache.toMutableMap().apply { put(index, bitmap) }
                 currentState.copy(pageCache = newCache)
             }
-            Log.d("PDFDriveReader", "Reader: Page $index cached")
         } catch (e: Exception) {
-            // Only log if it's not a cancellation (cancellations are expected during fast swiping)
             if (e !is kotlinx.coroutines.CancellationException) {
                 Log.e("PDFDriveReader", "Reader: Failed to cache page $index", e)
-            } else {
-                Log.d("PDFDriveReader", "Reader: Caching for page $index was cancelled")
             }
         }
     }
@@ -120,9 +131,7 @@ class ReaderViewModel @Inject constructor(
         val documentId = _state.value.document?.id ?: return
         if (index == _state.value.currentPage) return
 
-        Log.d("PDFDriveReader", "Reader: Page changed to $index")
         _state.update { it.copy(currentPage = index) }
-        
         refreshCache(documentId, index)
         
         viewModelScope.launch {

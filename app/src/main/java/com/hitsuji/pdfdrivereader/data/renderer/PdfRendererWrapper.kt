@@ -44,6 +44,29 @@ class PdfRendererWrapper {
     }
 
     /**
+     * Retrieves the original size of a specific page in points (1/72 inch).
+     * 
+     * @param file The PDF file.
+     * @param pageIndex The 0-based page index.
+     * @return A Pair of (Width, Height).
+     */
+    fun getPageSize(file: File, pageIndex: Int): Pair<Int, Int> {
+        var pfd: ParcelFileDescriptor? = null
+        var renderer: PdfRenderer? = null
+        var page: PdfRenderer.Page? = null
+        try {
+            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            renderer = PdfRenderer(pfd)
+            page = renderer.openPage(pageIndex)
+            return Pair(page.width, page.height)
+        } finally {
+            page?.close()
+            renderer?.close()
+            pfd?.close()
+        }
+    }
+
+    /**
      * Renders a specific page to a [Bitmap].
      * 
      * @param file The PDF file.
