@@ -11,10 +11,9 @@ import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
@@ -22,6 +21,7 @@ import kotlin.math.min
 /**
  * ViewModel for the immersive Reader screen.
  */
+@kotlinx.coroutines.FlowPreview
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
     private val openDocumentUseCase: OpenDocumentUseCase,
@@ -37,7 +37,8 @@ class ReaderViewModel @Inject constructor(
     val state: StateFlow<ReaderState> = _state.asStateFlow()
 
     private var cacheJob: Job? = null
-
+    private var lastRefreshZoom: Float = 1.0f
+    
     private var screenWidth: Int = 1080
     private var screenHeight: Int = 1920
 
@@ -64,7 +65,7 @@ class ReaderViewModel @Inject constructor(
                 loadPageIntoCache(uri, openedDoc.position.pageIndex)
                 appConfigRepository.saveLastUri(uri)
                 appConfigRepository.saveMode(AppMode.READER)
-                refreshCache(uri, openedDoc.position.pageIndex)
+                performRefreshCache()
                 
             } catch (e: Exception) {
                 Log.e("PDFDriveReader", "Reader: Fatal error opening document", e)
@@ -75,22 +76,36 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    private fun refreshCache(uri: String, centerIndex: Int) {
+    private fun performRefreshCache() {
+        val uri = _state.value.document?.id ?: return
+        val centerIndex = _state.value.currentPage
+        val currentZoom = _state.value.zoomLevel
+        val forceRefresh = currentZoom != lastRefreshZoom
+        lastRefreshZoom = currentZoom
+        
         cacheJob?.cancel()
         cacheJob = viewModelScope.launch {
             val totalPages = _state.value.document?.totalPageCount ?: return@launch
-            // Cache window: 2 pages before, 2 pages after
-            val indicesToLoad = listOf(centerIndex - 2, centerIndex - 1, centerIndex, centerIndex + 1, centerIndex + 2)
+            
+            // Priority 1: Current page
+            if (forceRefresh || !_state.value.pageCache.containsKey(centerIndex)) {
+                loadPageIntoCache(uri, centerIndex)
+            }
+
+            // Priority 2: Neighbor pages for concatenation
+            val indicesToLoad = listOf(centerIndex - 2, centerIndex - 1, centerIndex + 1, centerIndex + 2)
                 .filter { it in 0 until totalPages }
 
             indicesToLoad.forEach { index ->
-                if (!_state.value.pageCache.containsKey(index)) {
+                if (forceRefresh || !_state.value.pageCache.containsKey(index)) {
                     loadPageIntoCache(uri, index)
                 }
             }
 
+            // Cleanup: Keep only what's in the window
+            val fullWindow = (indicesToLoad + centerIndex).toSet()
             _state.update { currentState ->
-                currentState.copy(pageCache = currentState.pageCache.filterKeys { it in indicesToLoad })
+                currentState.copy(pageCache = currentState.pageCache.filterKeys { it in fullWindow })
             }
         }
     }
@@ -101,11 +116,12 @@ class ReaderViewModel @Inject constructor(
             val pdfWidth = originalSize.first
             val pdfHeight = originalSize.second
             
-            val scale = min(screenWidth.toFloat() / pdfWidth, screenHeight.toFloat() / pdfHeight)
+            val zoom = _state.value.zoomLevel
+            val scale = min(screenWidth.toFloat() / pdfWidth, screenHeight.toFloat() / pdfHeight) * zoom
             val targetWidth = (pdfWidth * scale).toInt()
             val targetHeight = (pdfHeight * scale).toInt()
 
-            Log.d("PDFDriveReader", "Reader: Requesting bitmap for page $index")
+            Log.d("PDFDriveReader", "Reader: Requesting bitmap for page $index at zoom $zoom")
             val bitmap = getPageImageUseCase(uri, index, targetWidth, targetHeight) as Bitmap
             
             _state.update { currentState ->
@@ -128,11 +144,27 @@ class ReaderViewModel @Inject constructor(
         if (index == _state.value.currentPage) return
 
         _state.update { it.copy(currentPage = index) }
-        refreshCache(documentId, index)
+        performRefreshCache()
         
         viewModelScope.launch {
             saveReadingPositionUseCase(documentId, PagePosition(index, _state.value.zoomLevel))
         }
+    }
+
+    fun onZoomChanged(zoom: Float) {
+        if (zoom == _state.value.zoomLevel) return
+        val documentId = _state.value.document?.id ?: return
+        
+        _state.update { it.copy(zoomLevel = zoom) }
+        performRefreshCache()
+    }
+
+    fun resetZoom() {
+        if (_state.value.zoomLevel == 1.0f) return
+        val documentId = _state.value.document?.id ?: return
+        
+        _state.update { it.copy(zoomLevel = 1.0f) }
+        performRefreshCache()
     }
 
     fun onDirectionChanged(direction: ReadingDirection) {

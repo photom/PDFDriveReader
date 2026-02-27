@@ -105,6 +105,31 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Navigation State**
     - [ ] Session: Verifies that the `AppSession` is correctly loaded from the repository.
 
+### 3.4 Reader Continuous Mode (New Feature)
+- **Scroll Behavior**
+    - [ ] Verification: Verifies that `LazyRow` and `LazyColumn` are used instead of `Pager` components.
+    - [ ] Verification: Verifies that no snapping (PagerFlingBehavior) is applied to the scrollable container.
+    - [ ] Verification: Verifies that the document stays at its current position after a user lifts their finger during a swipe.
+- **Page Concatenation**
+    - [ ] Verification: Verifies that previous, current, and next pages are simultaneously visible in the composition (pre-rendered).
+    - [ ] Verification: Verifies that the concatenation persists even during zoom actions.
+- **Zooming & Scaling**
+    - [ ] Verification: Verifies that the zoom level correctly affects the rendering resolution of the PDF bitmaps.
+    - [ ] Verification: Verifies that the continuous flow between pages is preserved during zoom.
+    - [ ] Verification: Verifies that a double-tap gesture resets the zoom level to 1.0.
+    - [ ] Verification: Verifies that panning at high zoom level correctly transitions to page swiping when content boundaries are reached.
+    - [ ] Verification: Verifies that the zoom level remains stable after releasing fingers from the display.
+    - [ ] Verification: Verifies that existing bitmaps are preserved in cache until higher-resolution versions are ready during zoom.
+
+### 3.5 Reader Smoothness and Stability (Performance)
+- **Rendering & Concurrency**
+    - [ ] Verification: Verifies that rapid zoom/page changes do not flood the system with rendering requests (Debouncing/Conflation).
+    - [ ] Verification: Verifies that rendering occurs on `Dispatchers.Default` and does not block the Main UI thread.
+    - [ ] Verification: Verifies that high-zoom panning remains responsive by prioritizing the current viewport's rendering.
+- **Gesture Reliability**
+    - [ ] Verification: Verifies that rapid swiping does not cause the application to hang or crash.
+    - [ ] Verification: Verifies that the "Gesture hand-off" between panning and swiping is fluid and without "dead zones".
+
 ---
 
 ## 4. Infrastructure & System Modules
@@ -131,3 +156,15 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Tools**: JUnit 5, MockK (for mocking interfaces), Kotlin Coroutines Test (for `runTest`).
 - **Isolation**: Each module must be tested in isolation. Repositories should use an in-memory database or mocks for the network/filesystem.
 - **Naming**: Use descriptive names: `testWhen[Condition]Then[ExpectedResult]`.
+
+### 3.6 Seamless Reader Interaction (New UX)
+- **Viewport Consistency**
+    - [ ] Verification: Verifies that zoom applies to the entire `LazyList` container, allowing multiple pages to be scaled together.
+    - [ ] Verification: Verifies that pinch-to-zoom correctly calculates the focal point between two fingers and keeps it visually stationary.
+- **Gesture Continuity**
+    - [ ] Verification: Verifies that panning vertically/horizontally across page boundaries is smooth and does not require re-triggering gestures.
+    - [ ] Verification: Verifies that the scroll position is maintained accurately when transitioning between different zoom levels.
+- **Inertia & Physics**
+    - [ ] Verification: Verifies that fling gestures apply natural deceleration to the concatenated document ribbon.
+    - [ ] Verification: Verifies that the document does not automatically snap or move after the fling finishes.
+    - [ ] Verification: Verifies that changing the viewport zoom does not trigger an automatic scroll-to-top adjustment of the current page.

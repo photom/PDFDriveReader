@@ -98,7 +98,7 @@ class RoomPdfRepository @Inject constructor(
         pageIndex: Int, 
         width: Int, 
         height: Int
-    ): Any = withContext(Dispatchers.IO) {
+    ): Any = withContext(Dispatchers.Default) {
         // No file opening here! Uses the active session from Step 1.
         renderer.renderPage(pageIndex, width, height)
     }

@@ -180,6 +180,40 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `onZoomChanged should update state and refresh cache`() = runTest {
+        val uri = "uri1"
+        val mockDoc = PdfDocument(uri, "doc.pdf", 10)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val mockBitmap: Bitmap = mock()
+
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageSizeUseCase(any(), any())) doReturn (100 to 100)
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mockBitmap
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+
+        viewModel = ReaderViewModel(
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
+            saveReadingDirectionUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository
+        )
+
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+
+        viewModel.onZoomChanged(2.0f)
+        advanceUntilIdle()
+
+        assertEquals(2.0f, viewModel.state.value.zoomLevel)
+        // Verify rendering was requested again for the new zoom level
+        verify(getPageImageUseCase, atLeast(2)).invoke(eq(uri), eq(0), any(), any())
+    }
+
+    @Test
     fun `loadDocument should set isLoading to false after successful load`() = runTest {
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, "doc.pdf", 10)

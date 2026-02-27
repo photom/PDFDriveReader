@@ -4,11 +4,15 @@ import android.graphics.Bitmap
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.VerticalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -16,8 +20,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
@@ -46,32 +55,101 @@ fun ReaderScreen(
             viewModel.updateScreenDimensions(widthPx, heightPx)
         }
 
-        val pagerState = rememberPagerState(
-            initialPage = state.currentPage,
-            pageCount = { state.document?.totalPageCount ?: 0 }
-        )
+        // Zoom and Pan state
+        var scale by remember { mutableFloatStateOf(state.zoomLevel) }
+        var offset by remember { mutableStateOf(Offset.Zero) }
 
-        LaunchedEffect(pagerState.currentPage) {
-            if (pagerState.currentPage != state.currentPage) {
-                viewModel.onPageChanged(pagerState.currentPage)
+        val currentScale by rememberUpdatedState(scale)
+        val currentZoomLevel by rememberUpdatedState(state.zoomLevel)
+
+        // Sync local scale with state when state changes (e.g. on load or reset)
+        LaunchedEffect(state.zoomLevel) {
+            if (scale != state.zoomLevel) {
+                scale = state.zoomLevel
             }
         }
 
+        val listState = rememberLazyListState(initialFirstVisibleItemIndex = state.currentPage)
+
+        // Sync list scroll back to ViewModel page index for the slider/UI
+        // Use snapshotFlow to avoid excessive triggers and only sync if not already matching
+        LaunchedEffect(listState) {
+            snapshotFlow { listState.firstVisibleItemIndex }
+                .collect { index ->
+                    if (index != state.currentPage) {
+                        viewModel.onPageChanged(index)
+                    }
+                }
+        }
+
+        // Sync ViewModel page index changes back to list scroll
+        // ONLY if the change did NOT originate from the listState itself (e.g. from slider)
+        // We can check if listState is currently being scrolled to distinguish
         LaunchedEffect(state.currentPage) {
-            if (pagerState.currentPage != state.currentPage) {
-                pagerState.scrollToPage(state.currentPage)
+            if (!listState.isScrollInProgress && listState.firstVisibleItemIndex != state.currentPage) {
+                listState.scrollToItem(state.currentPage)
             }
         }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    viewModel.toggleUI()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            scale = 1f
+                            offset = Offset.Zero
+                            viewModel.resetZoom()
+                        },
+                        onTap = {
+                            viewModel.toggleUI()
+                        }
+                    )
                 }
+                .pointerInput(Unit) {
+                    detectTransformGestures { centroid, pan, zoom, _ ->
+                        val oldScale = scale
+                        val newScale = (scale * zoom).coerceIn(1f, 5f)
+                        
+                        // To keep the centroid stationary:
+                        // The relative position of the centroid within the scaled content must stay the same.
+                        // (centroid - oldOffset) / oldScale == (centroid - newOffset) / newScale
+                        // Solving for newOffset:
+                        val newOffset = centroid - (centroid - offset - pan * oldScale) * (newScale / oldScale)
+
+                        scale = newScale
+                        
+                        // Bounds calculation to prevent panning too far
+                        val extraWidth = (newScale - 1) * size.width
+                        val extraHeight = (newScale - 1) * size.height
+                        val maxX = extraWidth / 2f
+                        val maxY = extraHeight / 2f
+
+                        offset = Offset(
+                            newOffset.x.coerceIn(-maxX, maxX),
+                            newOffset.y.coerceIn(-maxY, maxY)
+                        )
+                    }
+                }
+                .pointerInput(Unit) {
+                    // Detect end of transformation to trigger high-quality re-render
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.all { !it.pressed }) {
+                                if (currentScale != currentZoomLevel) {
+                                    viewModel.onZoomChanged(currentScale)
+                                }
+                            }
+                        }
+                    }
+                }
+                .graphicsLayer(
+                    scaleX = scale,
+                    scaleY = scale,
+                    translationX = offset.x,
+                    translationY = offset.y
+                )
         ) {
             when {
                 state.isLoading -> {
@@ -101,45 +179,36 @@ fun ReaderScreen(
                 else -> {
                     when (state.direction) {
                         ReadingDirection.LTR -> {
-                            HorizontalPager(
-                                state = pagerState,
-                                modifier = Modifier.fillMaxSize()
-                            ) { pageIndex ->
-                                PdfPageDisplay(state, pageIndex)
+                            LazyRow(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(state.document?.totalPageCount ?: 0) { index ->
+                                    PdfPageDisplay(state, index)
+                                }
                             }
                         }
                         ReadingDirection.RTL -> {
-                            HorizontalPager(
-                                state = pagerState,
+                            LazyRow(
+                                state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                reverseLayout = true
-                            ) { pageIndex ->
-                                PdfPageDisplay(state, pageIndex)
+                                verticalAlignment = Alignment.CenterVertically,
+                                reverseLayout = true,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(state.document?.totalPageCount ?: 0) { index ->
+                                    PdfPageDisplay(state, index)
+                                }
                             }
                         }
                         ReadingDirection.TTB -> {
-                            val listState = androidx.compose.foundation.lazy.rememberLazyListState(
-                                initialFirstVisibleItemIndex = state.currentPage
-                            )
-                            
-                            // Sync list scroll back to ViewModel page index
-                            LaunchedEffect(listState.firstVisibleItemIndex) {
-                                if (listState.firstVisibleItemIndex != state.currentPage) {
-                                    viewModel.onPageChanged(listState.firstVisibleItemIndex)
-                                }
-                            }
-
-                            // Sync ViewModel page index changes back to list scroll
-                            LaunchedEffect(state.currentPage) {
-                                if (listState.firstVisibleItemIndex != state.currentPage) {
-                                    listState.scrollToItem(state.currentPage)
-                                }
-                            }
-
-                            androidx.compose.foundation.lazy.LazyColumn(
+                            LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp) // Subtle gap between pages
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
                                     PdfPageDisplay(state, index)
@@ -265,9 +334,13 @@ fun ReaderScreen(
 
 @Composable
 fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
-    val isTTB = state.direction == ReadingDirection.TTB
+    val isVertical = state.direction == ReadingDirection.TTB
     Box(
-        modifier = if (isTTB) Modifier.fillMaxWidth().wrapContentHeight() else Modifier.fillMaxSize(),
+        modifier = if (isVertical) {
+            Modifier.fillMaxWidth().wrapContentHeight()
+        } else {
+            Modifier.fillMaxHeight().wrapContentWidth()
+        },
         contentAlignment = Alignment.Center
     ) {
         val bitmap = state.pageCache[pageIndex]
