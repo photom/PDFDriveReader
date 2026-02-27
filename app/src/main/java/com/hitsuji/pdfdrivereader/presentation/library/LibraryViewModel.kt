@@ -12,6 +12,7 @@ import com.hitsuji.pdfdrivereader.domain.usecase.GetDocumentsUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SearchLibraryUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SyncCloudLibraryUseCase
 import com.hitsuji.pdfdrivereader.domain.usecase.SyncLocalLibraryUseCase
+import com.hitsuji.pdfdrivereader.domain.usecase.AddLocalPdfsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ class LibraryViewModel @Inject constructor(
     private val syncLocalLibraryUseCase: SyncLocalLibraryUseCase,
     private val syncCloudLibraryUseCase: SyncCloudLibraryUseCase,
     private val searchLibraryUseCase: SearchLibraryUseCase,
+    private val addLocalPdfsUseCase: AddLocalPdfsUseCase,
     private val driveService: GoogleDriveService,
     private val appConfigRepository: AppConfigurationRepository
 ) : ViewModel() {
@@ -114,6 +116,19 @@ class LibraryViewModel @Inject constructor(
      */
     fun onTabSelected(index: Int) {
         _selectedTab.value = index
+    }
+
+    fun addSyncDirectory(uri: String) {
+        viewModelScope.launch {
+            appConfigRepository.addSyncDirectory(uri)
+            refreshLibrary()
+        }
+    }
+
+    fun addManualSyncFiles(uris: List<String>) {
+        viewModelScope.launch {
+            addLocalPdfsUseCase(uris)
+        }
     }
 
     fun refreshLibrary() {

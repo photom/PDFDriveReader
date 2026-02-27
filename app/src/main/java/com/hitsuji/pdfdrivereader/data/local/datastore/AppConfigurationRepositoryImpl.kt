@@ -3,6 +3,7 @@ package com.hitsuji.pdfdrivereader.data.local.datastore
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.hitsuji.pdfdrivereader.domain.model.AppMode
 import com.hitsuji.pdfdrivereader.domain.model.AppSession
@@ -27,6 +28,7 @@ class AppConfigurationRepositoryImpl @Inject constructor(
 
     private val KEY_MODE = stringPreferencesKey("last_mode")
     private val KEY_URI = stringPreferencesKey("last_uri")
+    private val KEY_SYNC_DIRS = stringSetPreferencesKey("sync_directories")
 
     override fun getSession(): Flow<AppSession> {
         return context.dataStore.data.map { prefs ->
@@ -51,6 +53,17 @@ class AppConfigurationRepositoryImpl @Inject constructor(
             } else {
                 prefs.remove(KEY_URI)
             }
+        }
+    }
+
+    override fun getSyncDirectories(): Flow<Set<String>> {
+        return context.dataStore.data.map { it[KEY_SYNC_DIRS] ?: emptySet() }
+    }
+
+    override suspend fun addSyncDirectory(uri: String): Unit = withContext(Dispatchers.IO) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_SYNC_DIRS] ?: emptySet()
+            prefs[KEY_SYNC_DIRS] = current + uri
         }
     }
 }

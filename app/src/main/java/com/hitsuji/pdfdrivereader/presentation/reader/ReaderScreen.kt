@@ -183,7 +183,8 @@ fun ReaderScreen(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = 32.dp) // Extra padding for high-zoom panning
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
                                     PdfPageDisplay(state, index)
@@ -196,7 +197,8 @@ fun ReaderScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 verticalAlignment = Alignment.CenterVertically,
                                 reverseLayout = true,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = 32.dp)
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
                                     PdfPageDisplay(state, index)
@@ -208,7 +210,8 @@ fun ReaderScreen(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp) // Subtle gap between pages
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 32.dp)
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
                                     PdfPageDisplay(state, index)

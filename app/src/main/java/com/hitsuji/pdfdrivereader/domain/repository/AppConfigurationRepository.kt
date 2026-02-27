@@ -22,4 +22,14 @@ interface AppConfigurationRepository {
      * Saves the URI of the last opened document.
      */
     suspend fun saveLastUri(uri: String?)
+
+    /**
+     * Returns a flow of all directory URIs granted by the user via SAF.
+     */
+    fun getSyncDirectories(): Flow<Set<String>>
+
+    /**
+     * Adds a new SAF directory URI to the sync list.
+     */
+    suspend fun addSyncDirectory(uri: String)
 }

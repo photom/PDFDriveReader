@@ -18,15 +18,17 @@ import org.mockito.kotlin.*
  */
 class RoomPdfRepositoryTest {
 
+    private val context: android.content.Context = mock()
     private val dao: PdfDao = mock()
     private val scanner: LocalFileScanner = mock()
     private val renderer: PdfRendererWrapper = mock()
     private val driveService = FakeGoogleDriveService()
-    private val documentMapper = DocumentMapper(scanner) // Added scanner here
+    private val appConfig: com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository = mock()
+    private val documentMapper = DocumentMapper(scanner) 
     private val sessionMapper = ReadingSessionMapper()
     
     private val repository = RoomPdfRepository(
-        dao, documentMapper, sessionMapper, scanner, renderer, driveService
+        context, dao, documentMapper, sessionMapper, scanner, renderer, driveService, appConfig
     )
 
     /**
@@ -95,6 +97,7 @@ class RoomPdfRepositoryTest {
             source = com.hitsuji.pdfdrivereader.domain.model.SourceType.LOCAL_STORAGE
         )
         whenever(scanner.scanDevice()) doReturn listOf(mockDoc)
+        whenever(appConfig.getSyncDirectories()) doReturn kotlinx.coroutines.flow.flowOf(emptySet())
         
         repository.syncLocal()
         

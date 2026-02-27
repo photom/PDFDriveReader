@@ -1,8 +1,10 @@
 package com.hitsuji.pdfdrivereader.data.renderer
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
+import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
@@ -17,30 +19,29 @@ class PdfRendererWrapper {
 
     private var activePfd: ParcelFileDescriptor? = null
     private var activeRenderer: PdfRenderer? = null
-    private var activeFile: File? = null
+    private var activeId: String? = null
 
     /**
-     * Opens a PDF file and caches the renderer for subsequent page requests.
-     * 
-     * @param file The PDF file.
-     * @return [PdfDocument] metadata.
+     * Opens a PDF file from a URI and caches the renderer for subsequent page requests.
      */
-    fun openDocument(file: File): PdfDocument {
-        if (activeFile?.absolutePath == file.absolutePath && activeRenderer != null) {
-            return PdfDocument(file.absolutePath, file.name, activeRenderer!!.pageCount)
+    fun openDocument(context: Context, uri: Uri, fileName: String): PdfDocument {
+        if (activeId == uri.toString() && activeRenderer != null) {
+            return PdfDocument(uri.toString(), fileName, activeRenderer!!.pageCount)
         }
 
         close() // Close existing session if any
 
-        Log.d("PDFDriveReader", "PdfRenderer: Opening NEW session for ${file.name}")
+        Log.d("PDFDriveReader", "PdfRenderer: Opening NEW session for $fileName")
         try {
-            val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                ?: throw IllegalStateException("Could not open file descriptor for $uri")
+            
             val renderer = PdfRenderer(pfd)
             activePfd = pfd
             activeRenderer = renderer
-            activeFile = file
+            activeId = uri.toString()
             
-            return PdfDocument(id = file.absolutePath, fileName = file.name, totalPageCount = renderer.pageCount)
+            return PdfDocument(id = uri.toString(), fileName = fileName, totalPageCount = renderer.pageCount)
         } catch (e: Exception) {
             Log.e("PDFDriveReader", "PdfRenderer: Failed to open document", e)
             throw e
@@ -90,7 +91,7 @@ class PdfRendererWrapper {
         activePfd?.close()
         activeRenderer = null
         activePfd = null
-        activeFile = null
+        activeId = null
         Log.d("PDFDriveReader", "PdfRenderer: Session closed")
     }
 }

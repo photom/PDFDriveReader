@@ -1,5 +1,7 @@
 package com.hitsuji.pdfdrivereader.data.repository
 
+import android.content.Context
+import android.net.Uri
 import com.hitsuji.pdfdrivereader.data.local.dao.PdfDao
 import com.hitsuji.pdfdrivereader.data.local.scanner.LocalFileScanner
 import com.hitsuji.pdfdrivereader.data.mapper.DocumentMapper
@@ -11,9 +13,12 @@ import com.hitsuji.pdfdrivereader.domain.model.PagePosition
 import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
 import com.hitsuji.pdfdrivereader.domain.model.ReadingDirection
 import com.hitsuji.pdfdrivereader.domain.model.ReadingSettings
+import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.repository.PdfRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -23,12 +28,14 @@ import javax.inject.Inject
  * Room-backed implementation of the [PdfRepository].
  */
 class RoomPdfRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val dao: PdfDao,
     private val documentMapper: DocumentMapper,
     private val sessionMapper: ReadingSessionMapper,
     private val scanner: LocalFileScanner,
     private val renderer: PdfRendererWrapper,
-    private val driveService: GoogleDriveService
+    private val driveService: GoogleDriveService,
+    private val appConfig: AppConfigurationRepository
 ) : PdfRepository {
 
     override fun getDocuments(): Flow<List<DocumentMetadata>> {
@@ -37,15 +44,15 @@ class RoomPdfRepository @Inject constructor(
         }
     }
 
-    private suspend fun resolveUriToFile(uri: String, metadata: com.hitsuji.pdfdrivereader.data.local.entity.DocumentMetadataEntity): File {
+    private suspend fun resolveUriToLocalUri(uri: String, metadata: com.hitsuji.pdfdrivereader.data.local.entity.DocumentMetadataEntity): Uri {
         return if (metadata.sourceType == "GOOGLE_DRIVE") {
             val cacheFile = File(scanner.getCloudCacheDir(), uri)
             if (!cacheFile.exists()) {
                 driveService.downloadFile(uri, cacheFile.absolutePath)
             }
-            cacheFile
+            Uri.fromFile(cacheFile)
         } else {
-            File(uri)
+            Uri.parse(uri)
         }
     }
 
@@ -53,11 +60,8 @@ class RoomPdfRepository @Inject constructor(
         val metadata = dao.getMetadataByUri(uri)
             ?: throw IllegalStateException("Metadata not found for: $uri")
 
-        val file = resolveUriToFile(uri, metadata)
-        if (!file.exists()) {
-            throw IllegalStateException("PDF file not found at: ${file.absolutePath}")
-        }
-        renderer.openDocument(file).copy(id = uri, fileName = metadata.fileName)
+        val localUri = resolveUriToLocalUri(uri, metadata)
+        renderer.openDocument(context, localUri, metadata.fileName).copy(id = uri)
     }
 
     override suspend fun savePosition(uri: String, position: PagePosition) = withContext(Dispatchers.IO) {
@@ -107,10 +111,31 @@ class RoomPdfRepository @Inject constructor(
         renderer.close()
     }
 
-    override suspend fun syncLocal() = withContext(Dispatchers.IO) {
-        val foundDocs = scanner.scanDevice()
-        foundDocs.forEach { doc ->
+    override suspend fun saveMetadata(docs: List<DocumentMetadata>) = withContext(Dispatchers.IO) {
+        docs.forEach { doc ->
             dao.upsertMetadata(documentMapper.toEntity(doc))
+        }
+    }
+
+    override suspend fun syncLocal() = withContext(Dispatchers.IO) {
+        // 1. MediaStore scan (backward compatibility and quick indexing)
+        val mediaStoreDocs = scanner.scanDevice()
+        mediaStoreDocs.forEach { doc ->
+            dao.upsertMetadata(documentMapper.toEntity(doc))
+        }
+
+        // 2. SAF Tree URI scans (comprehensive deep scan for granted folders)
+        val syncDirs = appConfig.getSyncDirectories().first()
+        syncDirs.forEach { uriString ->
+            try {
+                val treeUri = Uri.parse(uriString)
+                val foundDocs = scanner.scanDirectory(treeUri)
+                foundDocs.forEach { doc ->
+                    dao.upsertMetadata(documentMapper.toEntity(doc))
+                }
+            } catch (e: Exception) {
+                // Skip invalid or revoked URIs
+            }
         }
     }
 

@@ -1,13 +1,15 @@
 package com.hitsuji.pdfdrivereader.data.local.scanner
 
 import android.content.ContentResolver
+import android.net.Uri
 import android.provider.MediaStore
+import androidx.documentfile.provider.DocumentFile
 import com.hitsuji.pdfdrivereader.domain.model.DocumentMetadata
 import com.hitsuji.pdfdrivereader.domain.model.SourceType
 import java.io.File
 
 /**
- * Service responsible for scanning the local filesystem for PDF documents using MediaStore.
+ * Service responsible for scanning the local filesystem for PDF documents using MediaStore and SAF.
  */
 class LocalFileScanner(private val context: android.content.Context) {
 
@@ -88,6 +90,34 @@ class LocalFileScanner(private val context: android.content.Context) {
         }
         
         return pdfList
+    }
+
+    /**
+     * Recursively scans a SAF Tree URI for PDF documents.
+     */
+    fun scanDirectory(treeUri: Uri): List<DocumentMetadata> {
+        val root = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
+        val pdfList = mutableListOf<DocumentMetadata>()
+        scanDocumentFileRecursive(root, pdfList)
+        return pdfList
+    }
+
+    private fun scanDocumentFileRecursive(directory: DocumentFile, pdfList: MutableList<DocumentMetadata>) {
+        val files = directory.listFiles()
+        for (file in files) {
+            if (file.isDirectory) {
+                scanDocumentFileRecursive(file, pdfList)
+            } else if (file.isFile && (file.type == "application/pdf" || file.name?.endsWith(".pdf", ignoreCase = true) == true)) {
+                pdfList.add(
+                    DocumentMetadata(
+                        id = file.uri.toString(),
+                        fileName = file.name ?: "Unknown",
+                        locationPath = directory.name ?: "/",
+                        source = SourceType.LOCAL_STORAGE
+                    )
+                )
+            }
+        }
     }
 
     /**

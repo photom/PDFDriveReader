@@ -1,6 +1,7 @@
 package com.hitsuji.pdfdrivereader
 
 import android.os.Bundle
+import android.util.Base64
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -56,7 +57,8 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
         // Determine start destination based on session
         val startDest = remember {
             if (session?.lastMode == AppMode.READER && session?.lastUri != null) {
-                "reader/${java.net.URLEncoder.encode(session?.lastUri!!, "UTF-8")}"
+                val encodedUri = Base64.encodeToString(session?.lastUri!!.toByteArray(), Base64.URL_SAFE or Base64.NO_WRAP)
+                "reader/$encodedUri"
             } else {
                 "library"
             }
@@ -68,7 +70,8 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
                 LibraryScreen(
                     viewModel = viewModel,
                     onDocumentClick = { uri ->
-                        navController.navigate("reader/${java.net.URLEncoder.encode(uri, "UTF-8")}")
+                        val encodedUri = Base64.encodeToString(uri.toByteArray(), Base64.URL_SAFE or Base64.NO_WRAP)
+                        navController.navigate("reader/$encodedUri")
                     }
                 )
             }
@@ -76,8 +79,8 @@ fun AppNavigation(mainViewModel: MainViewModel = hiltViewModel()) {
                 route = "reader/{uri}",
                 arguments = listOf(navArgument("uri") { type = NavType.StringType })
             ) { backStackEntry ->
-                val uri = backStackEntry.arguments?.getString("uri") ?: ""
-                val decodedUri = java.net.URLDecoder.decode(uri, "UTF-8")
+                val encodedUri = backStackEntry.arguments?.getString("uri") ?: ""
+                val decodedUri = String(Base64.decode(encodedUri, Base64.URL_SAFE or Base64.NO_WRAP))
                 val viewModel: ReaderViewModel = hiltViewModel()
                 
                 LaunchedEffect(decodedUri) {

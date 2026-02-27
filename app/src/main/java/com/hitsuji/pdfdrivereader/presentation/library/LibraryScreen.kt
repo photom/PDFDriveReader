@@ -55,13 +55,41 @@ fun LibraryScreen(
         label = "Rotation"
     )
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            viewModel.refreshLibrary()
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                viewModel.addSyncDirectory(it.toString())
+            } catch (e: Exception) {
+                Log.e("PDFDriveReader", "Failed to take persistable tree permission", e)
+            }
         }
     }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            uris.forEach { uri ->
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (e: Exception) {
+                    Log.e("PDFDriveReader", "Failed to take persistable file permission", e)
+                }
+            }
+            viewModel.addManualSyncFiles(uris.map { it.toString() })
+        }
+    }
+
+    var showFabMenu by remember { mutableStateOf(false) }
 
     val authLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -82,14 +110,51 @@ fun LibraryScreen(
     }
 
     LaunchedEffect(Unit) {
-        val permission = Manifest.permission.READ_EXTERNAL_STORAGE
-        if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
-            permissionLauncher.launch(permission)
-        }
+        viewModel.refreshLibrary()
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(viewModel.snackbarHostState) },
+        floatingActionButton = {
+            if (selectedTab == 0) {
+                Column(horizontalAlignment = Alignment.End) {
+                    if (showFabMenu) {
+                        SmallFloatingActionButton(
+                            onClick = { 
+                                showFabMenu = false
+                                folderPickerLauncher.launch(null) 
+                            },
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.CreateNewFolder, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Folder")
+                            }
+                        }
+                        SmallFloatingActionButton(
+                            onClick = { 
+                                showFabMenu = false
+                                filePickerLauncher.launch(arrayOf("application/pdf")) 
+                            },
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Files")
+                            }
+                        }
+                    }
+                    FloatingActionButton(onClick = { showFabMenu = !showFabMenu }) {
+                        Icon(
+                            if (showFabMenu) Icons.Default.Close else Icons.Default.Add, 
+                            contentDescription = "Add Content"
+                        )
+                    }
+                }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text("My Library") },

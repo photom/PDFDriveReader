@@ -84,6 +84,11 @@ interface PdfRepository {
     suspend fun closeDocument()
 
     /**
+     * Persists a list of document metadata.
+     */
+    suspend fun saveMetadata(docs: List<DocumentMetadata>)
+
+    /**
      * Triggers an asynchronous scan of the local filesystem for new PDFs.
      */
     suspend fun syncLocal()

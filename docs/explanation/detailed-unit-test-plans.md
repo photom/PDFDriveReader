@@ -55,10 +55,10 @@ This document provides a granular test plan for every module in the PDFDriveRead
 
 ### 2.2 Local File Scanner
 - **`LocalFileScanner`**
-    - [ ] `scanDevice()`: Verifies it queries `MediaStore.Files` and `MediaStore.Downloads` on Android Q+.
-    - [ ] `scanDevice()`: Verifies it correctly filters files by both `application/pdf` MIME type and `.pdf` extension.
-    - [ ] `scanDevice()`: Verifies it does not return duplicate files if they exist in both collections.
-    - [ ] `scanDevice()`: Verifies it handles `SecurityException` gracefully when permission is denied.
+    - [ ] `scanDirectory(uri)`: Verifies it recursively lists all PDF documents within a SAF Tree URI.
+    - [ ] `scanDirectory(uri)`: Verifies it handles nested directories.
+    - [ ] `scanDirectory(uri)`: Verifies it filters non-PDF files correctly.
+    - [ ] `scanDirectory(uri)`: Verifies it handles revoked or invalid URIs gracefully.
 
 ### 2.3 Mappers
 - **`DocumentMapper`**
@@ -70,14 +70,10 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ## 3. Presentation Layer Modules (`ui/`)
 
 ### 3.1 LibraryViewModel
-- **States**
-    - [ ] Initial: Verifies the state starts as `LibraryState.Loading`.
-    - [ ] Initial: Verifies the initial selected tab is set to Google Drive (Cloud).
-    - [ ] Syncing: Verifies `isSyncing` is true during `refreshLibrary()` and false after completion.
-    - [ ] Success: Displays the document list.
-    - [ ] Empty: Displays "No PDFs found" state.
 - **Actions**
-    - [ ] `onRefresh`: Triggers the `SyncLocalLibrary` use case.
+    - [ ] `onRefresh`: Triggers the `SyncLocalLibrary` use case for all stored SAF directories.
+    - [ ] `onFolderPicked`: Verifies that adding a new SAF directory triggers an immediate scan.
+    - [ ] `onFilesPicked`: Verifies that picking multiple PDF files via SAF correctly adds them to the database.
     - [ ] `onSearchQueryChanged`: Updates the filtered list in real-time.
     - [ ] `onTabSelected`: Switches the view between Local and Cloud sources.
 
@@ -104,6 +100,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ### 3.3 MainViewModel
 - **Navigation State**
     - [ ] Session: Verifies that the `AppSession` is correctly loaded from the repository.
+    - [ ] URI Encoding: Verifies that document URIs are Base64 encoded for navigation to ensure compatibility with SAF URIs containing special characters.
 
 ### 3.4 Reader Continuous Mode (New Feature)
 - **Scroll Behavior**
@@ -161,6 +158,10 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Viewport Consistency**
     - [ ] Verification: Verifies that zoom applies to the entire `LazyList` container, allowing multiple pages to be scaled together.
     - [ ] Verification: Verifies that pinch-to-zoom correctly calculates the focal point between two fingers and keeps it visually stationary.
+- **Directional Continuity**
+    - [ ] **TTB**: Verifies that vertical panning across page boundaries is smooth and non-snapping.
+    - [ ] **LTR**: Verifies that horizontal panning from left to right is smooth and non-snapping.
+    - [ ] **RTL**: Verifies that horizontal panning from right to left (reverse layout) is smooth, correctly handles reversed indices, and is non-snapping.
 - **Gesture Continuity**
     - [ ] Verification: Verifies that panning vertically/horizontally across page boundaries is smooth and does not require re-triggering gestures.
     - [ ] Verification: Verifies that the scroll position is maintained accurately when transitioning between different zoom levels.

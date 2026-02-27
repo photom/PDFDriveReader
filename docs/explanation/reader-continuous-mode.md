@@ -28,13 +28,19 @@ The Reader Continuous Mode transforms the PDF viewing experience from discrete, 
 ## 4. Technical Implementation Details
 
 ### 4.1 Layout Selection
-- **TTB (Top-to-Bottom)**: `LazyColumn`.
-- **LTR (Left-to-Right)**: `LazyRow`.
-- **RTL (Right-to-Left)**: `LazyRow` with `reverseLayout = true`.
+- **TTB (Top-to-Bottom)**:
+    - **Implementation**: `LazyColumn` with standard vertical scrolling.
+    - **Seamlessness**: Pages are concatenated vertically. Panning at high zoom allows moving vertically across boundaries and horizontally within the zoomed width.
+- **LTR (Left-to-Right)**:
+    - **Implementation**: `LazyRow` with standard horizontal scrolling.
+    - **Seamlessness**: Pages are concatenated horizontally. Swiping moves the document from left to right.
+- **RTL (Right-to-Left)**:
+    - **Implementation**: `LazyRow` with `reverseLayout = true`.
+    - **Seamlessness**: Pages are concatenated horizontally. Swiping moves the document from right to left (Manga/Arabic style). The "ribbon" start is on the right side of the viewport.
 
-### 4.2 Zooming Strategy
-We will use a custom `zoomable` modifier. To maintain concatenation, the zoom should ideally apply to the viewport. 
-However, for PDF rendering, high-quality zoom often requires re-rendering at higher resolutions. The `PdfRendererWrapper` already supports rendering at target widths/heights. 
+### 4.2 Zooming Strategy (All Directions)
+The viewport zoom logic is direction-agnostic. It applies a `graphicsLayer` transformation to the entire scrollable container (Row/Column).
+- **Coordinate Consistency**: The focal point calculation must correctly map the viewport centroid to the logical coordinate of the ribbon, regardless of whether it's a `LazyRow` or `LazyColumn`, or if it's reversed (RTL).
 
 ### 4.3 Page Change Detection
 Since we are using `Lazy` layouts, we will use `LazyListState.firstVisibleItemIndex` or a more complex calculation based on the center of the viewport to determine the "current" page for the UI (e.g., the slider).
