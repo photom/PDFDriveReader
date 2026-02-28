@@ -158,14 +158,11 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Viewport Consistency**
     - [ ] Verification: Verifies that zoom applies to the entire `LazyList` container, allowing multiple pages to be scaled together.
     - [ ] Verification: Verifies that pinch-to-zoom correctly calculates the focal point between two fingers and keeps it visually stationary.
-- **Directional Continuity**
-    - [ ] **TTB**: Verifies that vertical panning across page boundaries is smooth and non-snapping.
-    - [ ] **LTR**: Verifies that horizontal panning from left to right is smooth and non-snapping.
-    - [ ] **RTL**: Verifies that horizontal panning from right to left (reverse layout) is smooth, correctly handles reversed indices, and is non-snapping.
-- **Gesture Continuity**
-    - [ ] Verification: Verifies that panning vertically/horizontally across page boundaries is smooth and does not require re-triggering gestures.
-    - [ ] Verification: Verifies that the scroll position is maintained accurately when transitioning between different zoom levels.
+    - [ ] Verification: Verifies that zoom gestures work reliably regardless of pointer count.
+- **Integrated Axis Scrolling**
+    - [ ] **TTB**: Verifies that vertical delta transitions from viewport panning to `LazyList` scrolling when zoomed edges are reached.
+    - [ ] **LTR/RTL**: Verifies that horizontal delta transitions from viewport panning to `LazyList` scrolling when zoomed edges are reached.
 - **Inertia & Physics**
-    - [ ] Verification: Verifies that fling gestures apply natural deceleration to the concatenated document ribbon.
-    - [ ] Verification: Verifies that the document does not automatically snap or move after the fling finishes.
-    - [ ] Verification: Verifies that changing the viewport zoom does not trigger an automatic scroll-to-top adjustment of the current page.
+    - [ ] Verification: Verifies that release velocity is used to initialize a decay animation.
+    - [ ] Verification: Verifies that the momentum is distributed between viewport offset and list scroll position based on edge clamping.
+    - [ ] Verification: Verifies that the document does not automatically snap or move after the momentum finishes.

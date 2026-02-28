@@ -72,11 +72,13 @@ class ReaderDirectionalTest {
 
         // Switch to RTL
         viewModel.onDirectionChanged(ReadingDirection.RTL)
+        advanceUntilIdle()
         assertEquals(ReadingDirection.RTL, viewModel.state.value.direction)
         verify(saveReadingDirectionUseCase).invoke(eq(uri), eq(ReadingDirection.RTL))
 
         // Switch to TTB
         viewModel.onDirectionChanged(ReadingDirection.TTB)
+        advanceUntilIdle()
         assertEquals(ReadingDirection.TTB, viewModel.state.value.direction)
         verify(saveReadingDirectionUseCase).invoke(eq(uri), eq(ReadingDirection.TTB))
     }

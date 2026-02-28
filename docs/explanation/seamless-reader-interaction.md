@@ -7,14 +7,20 @@ This design aims to provide a fluid and integrated reading experience where page
 
 ### 2.1 Unified Viewport Zoom
 - **Behavior**: Zooming applies to the entire document canvas (the viewport) rather than individual pages.
-- **Focal Point Stability**: During a pinch gesture, the specific coordinate between the user's fingers (the centroid) must remain visually stationary. The document must scale "around" this point, preventing the viewing position from jumping or drifting.
+- **Focal Point Stability**: During a pinch gesture, the specific coordinate between the user's fingers (the centroid) must remain visually stationary.
+- **Interpolated Zooming**: Changes in scale and offset during a pinch gesture must be smoothed to prevent jitter. The application should use a combination of raw input tracking and subtle interpolation to ensure the transformation feels "glued" to the fingers without micro-stuttering.
+- **Focal Point Filtering**: The centroid calculation must be robust against "jumping" when fingers are added or removed during a gesture.
 - **Visuals**: When zooming out, multiple pages become visible simultaneously in a concatenated flow. When zooming in, the user can pan across page boundaries seamlessly.
 
 ### 2.2 Gesture Hand-off (Panning & Paging)
 - **Fluid Transition**: There is no "hard stop" when panning to the edge of a zoomed page. The document continues to scroll to the next or previous page in the same gesture.
-- **Natural Friction**: The movement follows platform-standard inertia (fling behavior). If a user swipes and releases, the document continues moving based on the velocity of the swipe and gradually slows down.
+- **Integrated Axis Scrolling**: The application must synchronize manual viewport panning with the underlying `LazyList` scrolling. On the primary axis (X for LTR/RTL, Y for TTB), movement should transition seamlessly from panning the zoomed area to scrolling the document ribbon. 
+- **Unified Physics Engine**: Flick gestures must trigger a single momentum calculation that handles both viewport offsets and list scroll positions. This prevents "stuttering" or "stacking" when crossing page boundaries.
+- **Edge-to-Edge Clamping**: When zooming in, the viewing area must be strictly clamped to the document content.
+- **Inertial Panning (Smooth Fling)**: When a user releases a swipe gesture, the document must continue to move with natural momentum using a decay animation.
+- **Robust Multi-touch Tracking**: Zoom gestures must be accurately detected regardless of which finger touches the screen first or if fingers are added/removed. The focal point must remain stable throughout these transitions.
+- **Natural Friction**: The movement follows platform-standard inertia. If a user swipes and releases, the document continues moving based on the velocity of the swipe and gradually slows down.
 - **No Forced Snapping**: As per requirement, the document stays exactly where the user leaves it. No automatic centering or snapping to page boundaries occurs. This includes suppressing any "jump to top" behavior when the current page index changes during a zoom or pan operation.
-- **Gesture Integrity**: The transition between zooming, panning, and scrolling must not trigger side-effects that reposition the document canvas unexpectedly.
 
 ### 2.3 Visual Continuity
 - **Concatenation**: Pages are joined with minimal or no gaps to create a "ribbon" effect.

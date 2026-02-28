@@ -35,6 +35,7 @@ class LibraryViewModelTest {
     private val syncLocalLibraryUseCase: SyncLocalLibraryUseCase = mock()
     private val syncCloudLibraryUseCase: SyncCloudLibraryUseCase = mock()
     private val searchLibraryUseCase: SearchLibraryUseCase = SearchLibraryUseCase()
+    private val addLocalPdfsUseCase: com.hitsuji.pdfdrivereader.domain.usecase.AddLocalPdfsUseCase = mock()
     private val driveService: GoogleDriveService = FakeGoogleDriveService()
     private val appConfigRepository: AppConfigurationRepository = mock()
     private lateinit var viewModel: LibraryViewModel
@@ -61,6 +62,7 @@ class LibraryViewModelTest {
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
             searchLibraryUseCase,
+            addLocalPdfsUseCase,
             driveService,
             appConfigRepository
         )
@@ -81,6 +83,7 @@ class LibraryViewModelTest {
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
             searchLibraryUseCase,
+            addLocalPdfsUseCase,
             driveService,
             appConfigRepository
         )
@@ -101,6 +104,7 @@ class LibraryViewModelTest {
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
             searchLibraryUseCase,
+            addLocalPdfsUseCase,
             driveService,
             appConfigRepository
         )
@@ -119,6 +123,7 @@ class LibraryViewModelTest {
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
             searchLibraryUseCase,
+            addLocalPdfsUseCase,
             driveService,
             appConfigRepository
         )
@@ -147,6 +152,7 @@ class LibraryViewModelTest {
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
             searchLibraryUseCase,
+            addLocalPdfsUseCase,
             driveService,
             appConfigRepository
         )
@@ -181,6 +187,7 @@ class LibraryViewModelTest {
             syncLocalLibraryUseCase,
             syncCloudLibraryUseCase,
             searchLibraryUseCase,
+            addLocalPdfsUseCase,
             driveService,
             appConfigRepository
         )
@@ -198,5 +205,28 @@ class LibraryViewModelTest {
         val currentState = viewModel.state.value
         assertTrue(currentState is LibraryState.Success)
         assertEquals(2, (currentState as LibraryState.Success).documents.size)
+    }
+
+    @Test
+    fun `addManualSyncFiles should trigger AddLocalPdfsUseCase`() = runTest {
+        whenever(getDocumentsUseCase()) doReturn flowOf(emptyList())
+        whenever(syncLocalLibraryUseCase()) doReturn DomainResult.Success(Unit)
+        
+        viewModel = LibraryViewModel(
+            getDocumentsUseCase, 
+            syncLocalLibraryUseCase,
+            syncCloudLibraryUseCase,
+            searchLibraryUseCase,
+            addLocalPdfsUseCase,
+            driveService,
+            appConfigRepository
+        )
+        advanceUntilIdle()
+
+        val uris = listOf("content://uri1", "content://uri2")
+        viewModel.addManualSyncFiles(uris)
+        advanceUntilIdle()
+
+        org.mockito.kotlin.verify(addLocalPdfsUseCase).invoke(org.mockito.kotlin.eq(uris))
     }
 }
