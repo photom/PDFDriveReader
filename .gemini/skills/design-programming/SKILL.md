@@ -1,6 +1,6 @@
 ---
-name: ddd-clean-architecture
-description: Expert guidance on Domain-Driven Design and Clean Architecture for Android. Use when designing system components, defining layer boundaries, or refactoring for SOLID compliance.
+name: design-programming
+description: Expert guidance on Domain-Driven Design and Clean Architecture for Android. Use when designing system components, defining layer boundaries, or refactoring for SOLID compliance. KISS, YAGNI, and DRY software principles.
 ---
 
 # DDD & Clean Architecture for Android
@@ -72,7 +72,14 @@ This skill provides procedural knowledge for implementing and maintaining a robu
 3.  Implement the business orchestration logic.
 4.  Write a pure Unit Test for the Use Case.
 
+## Other software principles MUST be followed to maintain
+
+- KISS
+- YAGNI
+- DRY
+
 ## References
+-   See the `tdd-android` skill for procedural knowledge on implementing tests for your domain designs and ensuring testability.
 -   See the `architectural-design` skill for guidance on visualizing these patterns using Mermaid diagrams.
 -   See `docs/reference/project-structure.md` for current directory mappings.
 -   See `docs/explanation/solid-compliance.md` for specific implementation examples.
