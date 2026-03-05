@@ -5,6 +5,7 @@ The Reader Continuous Mode transforms the PDF viewing experience from discrete, 
 
 ## 2. Key Requirements
 - **No Pagination**: Pages are not treated as separate screens but as elements in a continuous scrollable container.
+- **Pre-loaded Page Canvas**: When a document is loaded, the application retrieves the exact dimensions of every page. This allows the scrollable container to allocate precise physical space for the entire document upfront, preventing layout shifts and treating the document as "one big page" with defined gaps between the individual page items.
 - **Page Concatenation**: The current page is always accompanied by its immediate neighbors (previous and next), even when the user is not swiping or is zooming.
 - **Smooth Scrolling**: Swiping moves the document smoothly without snapping to page boundaries.
 - **Natural Inertia**: When a user lifts their finger during a swipe, the document stays at its current position (or continues moving with natural inertia if provided by the platform) without automatically centering a page.
@@ -16,14 +17,17 @@ The Reader Continuous Mode transforms the PDF viewing experience from discrete, 
 
 ### 3.1 Presentation Layer (Compose)
 - **Unified Scrollable Container**: Replace `HorizontalPager` and `VerticalPager` with `LazyRow` (for LTR/RTL) and `LazyColumn` (for TTB).
+- **Proportional Layout**: The `PdfPageDisplay` components utilize the pre-loaded page dimensions to enforce a strict aspect ratio, ensuring the scrollbar and content boundaries are accurate before bitmaps are rendered.
 - **Custom Scroll Logic**: Ensure `flingBehavior` is set to standard (non-snapping) scrolling.
 - **Concatenation Logic**: Ensure that at least 3 pages (previous, current, next) are always kept in the composition and rendered.
 - **Zooming**: Implement a zoomable modifier that wraps the scrollable container or individual items in a way that preserves the continuous feel. 
-    - *Decision*: A zoomable wrapper around the `Lazy` layout is preferred for a truly continuous zoom, but if that's technically challenging with `Lazy` layouts, an item-level zoom that synchronizes across visible items will be used.
 
 ### 3.2 View Model State
 - **Scroll Position Tracking**: Instead of just `currentPage`, track a more granular scroll position to restore state accurately.
 - **Dynamic Pre-rendering**: The 5-page sliding window cache will be maintained to ensure that neighbor pages are always ready for concatenation.
+
+### 3.3 Domain Layer
+- **PdfDocument Entity**: Expanded to include a `pageSizes` list representing the physical dimensions of every page in the document, populated during initialization.
 
 ## 4. Technical Implementation Details
 

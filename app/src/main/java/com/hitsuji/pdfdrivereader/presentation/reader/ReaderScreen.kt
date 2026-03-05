@@ -2,11 +2,8 @@ package com.hitsuji.pdfdrivereader.presentation.reader
 
 import android.graphics.Bitmap
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.*
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -18,17 +15,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
-import com.hitsuji.pdfdrivereader.domain.model.PdfDocument
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 import com.hitsuji.pdfdrivereader.domain.model.ReadingDirection
 import com.hitsuji.pdfdrivereader.presentation.theme.PdfDriveReaderTheme
 import kotlinx.coroutines.coroutineScope
@@ -51,19 +49,18 @@ fun ReaderScreen(
     ) {
         val widthPx = constraints.maxWidth
         val heightPx = constraints.maxHeight
+        val containerMaxWidth = maxWidth
+        val containerMaxHeight = maxHeight
         
         LaunchedEffect(widthPx, heightPx) {
             viewModel.updateScreenDimensions(widthPx, heightPx)
         }
 
-        // Zoom and Pan state with Animatable for smooth inertia
         val scaleAnim = remember { Animatable(state.zoomLevel) }
         val offsetXAnim = remember { Animatable(0f) }
         val offsetYAnim = remember { Animatable(0f) }
-        
         val coroutineScope = rememberCoroutineScope()
 
-        // Sync local scale with state when state changes (e.g. on load or reset)
         LaunchedEffect(state.zoomLevel) {
             if (scaleAnim.value != state.zoomLevel) {
                 scaleAnim.snapTo(state.zoomLevel)
@@ -72,8 +69,6 @@ fun ReaderScreen(
 
         val listState = rememberLazyListState(initialFirstVisibleItemIndex = state.currentPage)
 
-        // Sync list scroll back to ViewModel page index for the slider/UI
-        // Use snapshotFlow to avoid excessive triggers and only sync if not already matching
         LaunchedEffect(listState) {
             snapshotFlow { listState.firstVisibleItemIndex }
                 .collect { index ->
@@ -83,9 +78,6 @@ fun ReaderScreen(
                 }
         }
 
-        // Sync ViewModel page index changes back to list scroll
-        // ONLY if the change did NOT originate from the listState itself (e.g. from slider)
-        // We can check if listState is currently being scrolled to distinguish
         LaunchedEffect(state.currentPage) {
             if (!listState.isScrollInProgress && listState.firstVisibleItemIndex != state.currentPage) {
                 listState.scrollToItem(state.currentPage)
@@ -101,16 +93,12 @@ fun ReaderScreen(
                             val velocityTracker = VelocityTracker()
                             var isPinching = false
                             
-                            // 1. Detect Down
                             awaitFirstDown(requireUnconsumed = false)
-                            
-                            // Stop any ongoing inertia animations on touch
                             launch { 
                                 offsetXAnim.stop()
                                 offsetYAnim.stop()
                             }
 
-                            // 2. Track Move/Pinch
                             do {
                                 val event = awaitPointerEvent()
                                 val canceled = event.changes.any { it.isConsumed }
@@ -121,40 +109,28 @@ fun ReaderScreen(
 
                                     if (zoomChange != 1f || panChange != Offset.Zero) {
                                         if (zoomChange != 1f) isPinching = true
-                                        
                                         val oldScale = scaleAnim.value
                                         val newScale = (oldScale * zoomChange).coerceIn(1f, 5f)
-                                        
-                                        // Update Scale
                                         launch { scaleAnim.snapTo(newScale) }
 
-                                        // Update Offset with Focal Point and Panning
                                         val extraWidth = (newScale - 1) * size.width
                                         val extraHeight = (newScale - 1) * size.height
                                         val maxX = extraWidth / 2f
                                         val maxY = extraHeight / 2f
-
-                                        // Primary axis check based on reading direction
                                         val isHorizontalMain = state.direction != ReadingDirection.TTB
 
                                         if (centroid != Offset.Unspecified) {
-                                            // Focal point math
                                             val targetOffsetX = centroid.x - (centroid.x - offsetXAnim.value - panChange.x * oldScale) * (newScale / oldScale)
                                             val targetOffsetY = centroid.y - (centroid.y - offsetYAnim.value - panChange.y * oldScale) * (newScale / oldScale)
-                                            
-                                            // Apply translation with spill-over to LazyList
                                             val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
                                             val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
-                                            
                                             val spillX = targetOffsetX - clampedX
                                             val spillY = targetOffsetY - clampedY
 
                                             launch {
                                                 offsetXAnim.snapTo(clampedX)
                                                 offsetYAnim.snapTo(clampedY)
-                                                
                                                 if (isHorizontalMain) {
-                                                    // Reverse spill if RTL
                                                     val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
                                                     listState.scrollBy(scrollAmount)
                                                 } else {
@@ -162,20 +138,16 @@ fun ReaderScreen(
                                                 }
                                             }
                                         } else {
-                                            // Pure pan (no centroid)
                                             val targetOffsetX = offsetXAnim.value + panChange.x * oldScale
                                             val targetOffsetY = offsetYAnim.value + panChange.y * oldScale
-                                            
                                             val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
                                             val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
-                                            
                                             val spillX = targetOffsetX - clampedX
                                             val spillY = targetOffsetY - clampedY
 
                                             launch {
                                                 offsetXAnim.snapTo(clampedX)
                                                 offsetYAnim.snapTo(clampedY)
-                                                
                                                 if (isHorizontalMain) {
                                                     val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
                                                     listState.scrollBy(scrollAmount)
@@ -185,8 +157,6 @@ fun ReaderScreen(
                                             }
                                         }
                                         
-                                        // Consume events to prevent LazyList from handling them independently if we are zoomed in
-                                        // If scale is 1.0, we DON'T consume, allowing LazyList to handle its own scrolling.
                                         if (newScale > 1f) {
                                             event.changes.forEach { 
                                                 velocityTracker.addPosition(it.uptimeMillis, it.position)
@@ -197,7 +167,6 @@ fun ReaderScreen(
                                 }
                             } while (event.changes.any { it.pressed })
 
-                            // 3. Release: Handle Fling/Momentum (Inertia)
                             if (!isPinching && scaleAnim.value > 1f) {
                                 val velocity = velocityTracker.calculateVelocity()
                                 val extraWidth = (scaleAnim.value - 1) * size.width
@@ -207,13 +176,9 @@ fun ReaderScreen(
                                 val isHorizontalMain = state.direction != ReadingDirection.TTB
 
                                 launch {
-                                    offsetXAnim.animateDecay(
-                                        initialVelocity = velocity.x,
-                                        animationSpec = exponentialDecay()
-                                    ) {
+                                    offsetXAnim.animateDecay(initialVelocity = velocity.x, animationSpec = exponentialDecay()) {
                                         val clampedValue = value.coerceIn(-maxX, maxX)
                                         val overscroll = value - clampedValue
-                                        
                                         if (overscroll != 0f) {
                                             launch { 
                                                 offsetXAnim.snapTo(clampedValue)
@@ -226,13 +191,9 @@ fun ReaderScreen(
                                     }
                                 }
                                 launch {
-                                    offsetYAnim.animateDecay(
-                                        initialVelocity = velocity.y,
-                                        animationSpec = exponentialDecay()
-                                    ) {
+                                    offsetYAnim.animateDecay(initialVelocity = velocity.y, animationSpec = exponentialDecay()) {
                                         val clampedValue = value.coerceIn(-maxY, maxY)
                                         val overscroll = value - clampedValue
-                                        
                                         if (overscroll != 0f) {
                                             launch { 
                                                 offsetYAnim.snapTo(clampedValue)
@@ -244,7 +205,6 @@ fun ReaderScreen(
                                     }
                                 }
                             }
-                            
                             if (scaleAnim.value != state.zoomLevel) {
                                 viewModel.onZoomChanged(scaleAnim.value)
                             }
@@ -308,7 +268,7 @@ fun ReaderScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
-                                    PdfPageDisplay(state, index)
+                                    PdfPageDisplay(state, index, containerMaxWidth, containerMaxHeight)
                                 }
                             }
                         }
@@ -321,7 +281,7 @@ fun ReaderScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
-                                    PdfPageDisplay(state, index)
+                                    PdfPageDisplay(state, index, containerMaxWidth, containerMaxHeight)
                                 }
                             }
                         }
@@ -333,7 +293,7 @@ fun ReaderScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.document?.totalPageCount ?: 0) { index ->
-                                    PdfPageDisplay(state, index)
+                                    PdfPageDisplay(state, index, containerMaxWidth, containerMaxHeight)
                                 }
                             }
                         }
@@ -371,6 +331,13 @@ fun ReaderScreen(
                                 }
                             )
                             DropdownMenuItem(
+                                text = { Text("Toggle UI") },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.toggleUI()
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Close Reader") },
                                 onClick = {
                                     showMenu = false
@@ -399,7 +366,6 @@ fun ReaderScreen(
                 ) {
                     var sliderValue by remember { mutableFloatStateOf(state.currentPage.toFloat()) }
                     
-                    // Keep local slider synced with state when NOT dragging
                     LaunchedEffect(state.currentPage) {
                         sliderValue = state.currentPage.toFloat()
                     }
@@ -455,14 +421,26 @@ fun ReaderScreen(
 }
 
 @Composable
-fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
+fun PdfPageDisplay(state: ReaderState, pageIndex: Int, containerWidth: androidx.compose.ui.unit.Dp, containerHeight: androidx.compose.ui.unit.Dp) {
     val isVertical = state.direction == ReadingDirection.TTB
+    
+    // Calculate aspect ratio based on loaded page sizes
+    val pageSizes = state.document?.pageSizes
+    val aspectRatio = if (!pageSizes.isNullOrEmpty() && pageIndex < pageSizes.size) {
+        val size = pageSizes[pageIndex]
+        size.width.toFloat() / size.height.toFloat()
+    } else {
+        containerWidth.value / containerHeight.value
+    }
+
+    val pageModifier = if (isVertical) {
+        Modifier.fillMaxWidth().aspectRatio(aspectRatio)
+    } else {
+        Modifier.fillMaxHeight().aspectRatio(aspectRatio)
+    }
+
     Box(
-        modifier = if (isVertical) {
-            Modifier.fillMaxWidth().wrapContentHeight()
-        } else {
-            Modifier.fillMaxHeight().wrapContentWidth()
-        },
+        modifier = pageModifier,
         contentAlignment = Alignment.Center
     ) {
         val bitmap = state.pageCache[pageIndex]
@@ -470,15 +448,11 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int) {
             androidx.compose.foundation.Image(
                 bitmap = bitmap.asImageBitmap(),
                 contentDescription = "PDF Page ${pageIndex + 1}",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight() // Important for TTB concatenation
+                modifier = Modifier.fillMaxSize()
             )
         } else {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(500.dp), // Placeholder height while loading next page
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = Color.Gray)

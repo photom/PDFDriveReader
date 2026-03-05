@@ -13,6 +13,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **`PdfDocument` (Aggregate Root)**
     - [ ] `id` is properly assigned and immutable.
     - [ ] `close()` correctly triggers the release of underlying resources.
+    - [ ] **Pre-loading**: `pageSizes` list accurately reflects the size of all pages when initialized.
 - **`ReadingSettings` (Value Object)**
     - [ ] Equality: Two settings with the same direction/zoom are equal.
     - [ ] Default: Initialized with LTR and 100% zoom.
@@ -107,9 +108,10 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Verification: Verifies that `LazyRow` and `LazyColumn` are used instead of `Pager` components.
     - [ ] Verification: Verifies that no snapping (PagerFlingBehavior) is applied to the scrollable container.
     - [ ] Verification: Verifies that the document stays at its current position after a user lifts their finger during a swipe.
-- **Page Concatenation**
+- **Page Concatenation & Layout**
     - [ ] Verification: Verifies that previous, current, and next pages are simultaneously visible in the composition (pre-rendered).
     - [ ] Verification: Verifies that the concatenation persists even during zoom actions.
+    - [ ] Verification: Verifies that `PdfPageDisplay` uses the pre-loaded page dimensions to enforce a strict aspect ratio.
 - **Zooming & Scaling**
     - [ ] Verification: Verifies that the zoom level correctly affects the rendering resolution of the PDF bitmaps.
     - [ ] Verification: Verifies that the continuous flow between pages is preserved during zoom.

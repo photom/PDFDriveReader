@@ -26,7 +26,11 @@ class PdfRendererWrapper {
      */
     fun openDocument(context: Context, uri: Uri, fileName: String): PdfDocument {
         if (activeId == uri.toString() && activeRenderer != null) {
-            return PdfDocument(uri.toString(), fileName, activeRenderer!!.pageCount)
+            val sizes = (0 until activeRenderer!!.pageCount).map {
+                val size = getPageSize(it)
+                com.hitsuji.pdfdrivereader.domain.model.PageDimension(size.first, size.second)
+            }
+            return PdfDocument(uri.toString(), fileName, activeRenderer!!.pageCount, sizes)
         }
 
         close() // Close existing session if any
@@ -41,7 +45,18 @@ class PdfRendererWrapper {
             activeRenderer = renderer
             activeId = uri.toString()
             
-            return PdfDocument(id = uri.toString(), fileName = fileName, totalPageCount = renderer.pageCount)
+            val pageCount = renderer.pageCount
+            val sizes = (0 until pageCount).map { index ->
+                var page: PdfRenderer.Page? = null
+                try {
+                    page = renderer.openPage(index)
+                    com.hitsuji.pdfdrivereader.domain.model.PageDimension(page.width, page.height)
+                } finally {
+                    page?.close()
+                }
+            }
+            
+            return PdfDocument(id = uri.toString(), fileName = fileName, totalPageCount = pageCount, pageSizes = sizes)
         } catch (e: Exception) {
             Log.e("PDFDriveReader", "PdfRenderer: Failed to open document", e)
             throw e
