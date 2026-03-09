@@ -27,6 +27,7 @@ class ReaderViewModel @Inject constructor(
     private val openDocumentUseCase: OpenDocumentUseCase,
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase,
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase,
+    private val saveCoverModeUseCase: SaveCoverModeUseCase,
     private val getPageImageUseCase: GetPageImageUseCase,
     private val getPageSizeUseCase: GetPageSizeUseCase,
     private val closeDocumentUseCase: CloseDocumentUseCase,
@@ -53,16 +54,33 @@ class ReaderViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, errorMessage = null, pageCache = emptyMap()) }
             try {
                 val openedDoc = openDocumentUseCase(uri)
+                val isCoverModeEnabled = openedDoc.isCoverModeEnabled
+                val totalPages = openedDoc.document.totalPageCount
+                val coverPages = openedDoc.document.coverPages
+                
+                val visiblePages = if (isCoverModeEnabled) {
+                    (0 until totalPages).toList()
+                } else {
+                    (0 until totalPages).filter { it !in coverPages }
+                }
+                
+                var startIndex = openedDoc.position.pageIndex
+                if (!isCoverModeEnabled && startIndex in coverPages) {
+                    startIndex = visiblePages.firstOrNull { it > startIndex } ?: visiblePages.lastOrNull() ?: 0
+                }
+
                 _state.update { 
                     it.copy(
                         document = openedDoc.document,
-                        currentPage = openedDoc.position.pageIndex,
+                        currentPage = startIndex,
                         zoomLevel = openedDoc.position.zoomLevel,
-                        direction = openedDoc.direction
+                        direction = openedDoc.direction,
+                        isCoverModeEnabled = isCoverModeEnabled,
+                        visiblePages = visiblePages
                     )
                 }
                 
-                loadPageIntoCache(uri, openedDoc.position.pageIndex)
+                loadPageIntoCache(uri, startIndex)
                 appConfigRepository.saveLastUri(uri)
                 appConfigRepository.saveMode(AppMode.READER)
                 performRefreshCache()
@@ -79,13 +97,17 @@ class ReaderViewModel @Inject constructor(
     private fun performRefreshCache() {
         val uri = _state.value.document?.id ?: return
         val centerIndex = _state.value.currentPage
+        val visiblePages = _state.value.visiblePages
         val currentZoom = _state.value.zoomLevel
         val forceRefresh = currentZoom != lastRefreshZoom
         lastRefreshZoom = currentZoom
         
+        if (visiblePages.isEmpty()) return
+
+        val centerListIndex = visiblePages.indexOf(centerIndex).takeIf { it != -1 } ?: 0
+        
         cacheJob?.cancel()
         cacheJob = viewModelScope.launch {
-            val totalPages = _state.value.document?.totalPageCount ?: return@launch
             
             // Priority 1: Current page
             if (forceRefresh || !_state.value.pageCache.containsKey(centerIndex)) {
@@ -93,8 +115,12 @@ class ReaderViewModel @Inject constructor(
             }
 
             // Priority 2: Neighbor pages for concatenation
-            val indicesToLoad = listOf(centerIndex - 2, centerIndex - 1, centerIndex + 1, centerIndex + 2)
-                .filter { it in 0 until totalPages }
+            val indicesToLoad = listOf(
+                centerListIndex - 2, 
+                centerListIndex - 1, 
+                centerListIndex + 1, 
+                centerListIndex + 2
+            ).filter { it in visiblePages.indices }.map { visiblePages[it] }
 
             indicesToLoad.forEach { index ->
                 if (forceRefresh || !_state.value.pageCache.containsKey(index)) {
@@ -172,6 +198,39 @@ class ReaderViewModel @Inject constructor(
         val documentId = _state.value.document?.id ?: return
         viewModelScope.launch {
             saveReadingDirectionUseCase(documentId, direction)
+        }
+    }
+
+    fun onCoverModeChanged(enabled: Boolean) {
+        val document = _state.value.document ?: return
+        val documentId = document.id
+        if (enabled == _state.value.isCoverModeEnabled) return
+        
+        val newVisiblePages = if (enabled) {
+            (0 until document.totalPageCount).toList()
+        } else {
+            (0 until document.totalPageCount).filter { it !in document.coverPages }
+        }
+        
+        var newCurrentPage = _state.value.currentPage
+        if (!enabled && newCurrentPage in document.coverPages) {
+            newCurrentPage = newVisiblePages.firstOrNull { it > newCurrentPage } ?: newVisiblePages.lastOrNull() ?: 0
+        }
+        
+        _state.update { 
+            it.copy(
+                isCoverModeEnabled = enabled, 
+                visiblePages = newVisiblePages,
+                currentPage = newCurrentPage
+            ) 
+        }
+        performRefreshCache()
+        
+        viewModelScope.launch {
+            saveCoverModeUseCase(documentId, enabled)
+            if (newCurrentPage != _state.value.currentPage) {
+                saveReadingPositionUseCase(documentId, PagePosition(newCurrentPage, _state.value.zoomLevel))
+            }
         }
     }
 

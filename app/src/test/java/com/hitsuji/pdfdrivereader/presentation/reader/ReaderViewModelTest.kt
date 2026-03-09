@@ -26,6 +26,7 @@ class ReaderViewModelTest {
     private val openDocumentUseCase: OpenDocumentUseCase = mock()
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase = mock()
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase = mock()
+    private val saveCoverModeUseCase: SaveCoverModeUseCase = mock()
     private val getPageImageUseCase: GetPageImageUseCase = mock()
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
     private val closeDocumentUseCase: CloseDocumentUseCase = mock()
@@ -50,6 +51,7 @@ class ReaderViewModelTest {
             openDocumentUseCase, 
             saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -72,7 +74,7 @@ class ReaderViewModelTest {
         val mockBitmap: Bitmap = mock()
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, "doc.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageSizeUseCase(any(), any())) doReturn (100 to 200)
@@ -84,6 +86,7 @@ class ReaderViewModelTest {
             openDocumentUseCase, 
             saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -109,7 +112,7 @@ class ReaderViewModelTest {
     fun `rapid onPageChanged should cancel previous caching jobs`() = runTest {
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, "doc.pdf", 100)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageSizeUseCase(any(), any())) doReturn (100 to 100)
@@ -123,6 +126,7 @@ class ReaderViewModelTest {
             openDocumentUseCase, 
             saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -153,7 +157,7 @@ class ReaderViewModelTest {
     fun `onDirectionChanged should update state and persist`() = runTest {
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, "doc.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
@@ -163,6 +167,7 @@ class ReaderViewModelTest {
             openDocumentUseCase, 
             saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -183,7 +188,7 @@ class ReaderViewModelTest {
     fun `onZoomChanged should update state and refresh cache`() = runTest {
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, "doc.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -193,15 +198,15 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
 
         viewModel = ReaderViewModel(
-            openDocumentUseCase,
-            saveReadingPositionUseCase,
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
             appConfigRepository
         )
-
         viewModel.loadDocument(uri)
         advanceUntilIdle()
 
@@ -217,7 +222,7 @@ class ReaderViewModelTest {
     fun `loadDocument should set isLoading to false after successful load`() = runTest {
         val uri = "uri1"
         val mockDoc = PdfDocument(uri, "doc.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         val mockBitmap: Bitmap = mock()
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -230,6 +235,7 @@ class ReaderViewModelTest {
             openDocumentUseCase, 
             saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -252,6 +258,7 @@ class ReaderViewModelTest {
             openDocumentUseCase, 
             saveReadingPositionUseCase, 
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -263,5 +270,52 @@ class ReaderViewModelTest {
         
         assertFalse(viewModel.state.value.isLoading)
         assertEquals("IO Error", viewModel.state.value.errorMessage)
+    }
+
+    @Test
+    fun `onCoverModeChanged should update state, visible pages, and persist`() = runTest {
+        val uri = "uri1"
+        val sizes = listOf(
+            com.hitsuji.pdfdrivereader.domain.model.PageDimension(150, 150),
+            com.hitsuji.pdfdrivereader.domain.model.PageDimension(100, 100),
+            com.hitsuji.pdfdrivereader.domain.model.PageDimension(100, 100),
+            com.hitsuji.pdfdrivereader.domain.model.PageDimension(100, 100),
+            com.hitsuji.pdfdrivereader.domain.model.PageDimension(150, 150)
+        )
+        val mockDoc = PdfDocument(uri, "doc.pdf", 5, sizes)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
+        
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageSizeUseCase(any(), any())) doReturn (100 to 100)
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mock()
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase, 
+            saveReadingPositionUseCase, 
+            saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        assertEquals(true, viewModel.state.value.isCoverModeEnabled)
+        assertEquals(listOf(0, 1, 2, 3, 4), viewModel.state.value.visiblePages)
+        assertEquals(0, viewModel.state.value.currentPage)
+        
+        viewModel.onCoverModeChanged(false)
+        advanceUntilIdle()
+        
+        assertEquals(false, viewModel.state.value.isCoverModeEnabled)
+        assertEquals(listOf(1, 2, 3), viewModel.state.value.visiblePages)
+        assertEquals(1, viewModel.state.value.currentPage)
+        
+        verify(saveCoverModeUseCase).invoke(eq(uri), eq(false))
     }
 }

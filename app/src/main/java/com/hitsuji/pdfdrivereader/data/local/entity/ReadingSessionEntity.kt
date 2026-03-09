@@ -20,5 +20,8 @@ data class ReadingSessionEntity(
     val readingDirection: String,
     
     @ColumnInfo(name = "zoom_level")
-    val zoomLevel: Float
+    val zoomLevel: Float,
+
+    @ColumnInfo(name = "cover_mode", defaultValue = "1")
+    val coverMode: Boolean = true
 )

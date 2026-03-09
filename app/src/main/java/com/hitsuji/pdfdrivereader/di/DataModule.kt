@@ -52,7 +52,7 @@ abstract class DataModule {
                 context,
                 AppDatabase::class.java,
                 "pdf_drive_reader.db"
-            ).build()
+            ).fallbackToDestructiveMigration().build()
         }
 
         @Provides

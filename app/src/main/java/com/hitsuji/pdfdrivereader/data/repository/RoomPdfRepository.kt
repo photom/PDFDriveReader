@@ -69,8 +69,9 @@ class RoomPdfRepository @Inject constructor(
         val direction = existingSession?.let { 
             ReadingDirection.valueOf(it.readingDirection) 
         } ?: ReadingDirection.LTR
+        val coverMode = existingSession?.coverMode ?: true
         
-        val entity = sessionMapper.toEntity(uri, position, ReadingSettings(direction))
+        val entity = sessionMapper.toEntity(uri, position, ReadingSettings(direction, position.zoomLevel, coverMode))
         dao.upsertSession(entity)
     }
 
@@ -81,8 +82,11 @@ class RoomPdfRepository @Inject constructor(
     }
 
     override suspend fun saveDirection(uri: String, direction: ReadingDirection) = withContext(Dispatchers.IO) {
-        val position = getSavedPosition(uri) ?: PagePosition(0, 1.0f)
-        val entity = sessionMapper.toEntity(uri, position, ReadingSettings(direction))
+        val existingSession = dao.getSessionByUri(uri)
+        val position = existingSession?.let { sessionMapper.toDomain(it).first } ?: PagePosition(0, 1.0f)
+        val coverMode = existingSession?.coverMode ?: true
+        
+        val entity = sessionMapper.toEntity(uri, position, ReadingSettings(direction, position.zoomLevel, coverMode))
         dao.upsertSession(entity)
     }
 
@@ -90,6 +94,19 @@ class RoomPdfRepository @Inject constructor(
         dao.getSessionByUri(uri)?.let {
             sessionMapper.toDomain(it).second.direction
         }
+    }
+
+    override suspend fun saveCoverMode(uri: String, isCoverModeEnabled: Boolean) = withContext(Dispatchers.IO) {
+        val existingSession = dao.getSessionByUri(uri)
+        val position = existingSession?.let { sessionMapper.toDomain(it).first } ?: PagePosition(0, 1.0f)
+        val direction = existingSession?.let { ReadingDirection.valueOf(it.readingDirection) } ?: ReadingDirection.LTR
+        
+        val entity = sessionMapper.toEntity(uri, position, ReadingSettings(direction, position.zoomLevel, isCoverModeEnabled))
+        dao.upsertSession(entity)
+    }
+
+    override suspend fun getSavedCoverMode(uri: String): Boolean? = withContext(Dispatchers.IO) {
+        dao.getSessionByUri(uri)?.coverMode
     }
 
     override suspend fun getPageSize(uri: String, pageIndex: Int): Pair<Int, Int> = withContext(Dispatchers.IO) {

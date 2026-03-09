@@ -23,7 +23,8 @@ class ReadingSessionMapper {
             fileUri = fileUri,
             currentPage = position.pageIndex,
             readingDirection = settings.direction.name,
-            zoomLevel = position.zoomLevel
+            zoomLevel = position.zoomLevel,
+            coverMode = settings.isCoverModeEnabled
         )
     }
 
@@ -37,7 +38,8 @@ class ReadingSessionMapper {
         val position = PagePosition(entity.currentPage, entity.zoomLevel)
         val settings = ReadingSettings(
             direction = ReadingDirection.valueOf(entity.readingDirection),
-            savedZoom = entity.zoomLevel
+            savedZoom = entity.zoomLevel,
+            isCoverModeEnabled = entity.coverMode
         )
         return position to settings
     }

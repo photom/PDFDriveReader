@@ -5,8 +5,10 @@ package com.hitsuji.pdfdrivereader.domain.model
  * 
  * @property direction The chosen [ReadingDirection] for the document.
  * @property savedZoom The preferred zoom scale factor (1.0 to 5.0).
+ * @property isCoverModeEnabled Whether to display cover pages (true) or hide them (false).
  */
 data class ReadingSettings(
     val direction: ReadingDirection = ReadingDirection.LTR,
-    val savedZoom: Float = 1.0f
+    val savedZoom: Float = 1.0f,
+    val isCoverModeEnabled: Boolean = true
 )

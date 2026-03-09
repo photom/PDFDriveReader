@@ -26,6 +26,7 @@ class ReaderDirectionalTest {
     private val openDocumentUseCase: OpenDocumentUseCase = mock()
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase = mock()
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase = mock()
+    private val saveCoverModeUseCase: SaveCoverModeUseCase = mock()
     private val getPageImageUseCase: GetPageImageUseCase = mock()
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
     private val closeDocumentUseCase: CloseDocumentUseCase = mock()
@@ -48,7 +49,7 @@ class ReaderDirectionalTest {
     fun `viewModel should correctly switch between all reading directions`() = runTest {
         val uri = "direction_test"
         val mockDoc = PdfDocument(uri, "test.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageSizeUseCase(any(), any())) doReturn (1000 to 1000)
@@ -58,6 +59,7 @@ class ReaderDirectionalTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,

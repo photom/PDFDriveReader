@@ -28,6 +28,7 @@ class ReaderContinuousModeTest {
     private val openDocumentUseCase: OpenDocumentUseCase = mock()
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase = mock()
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase = mock()
+    private val saveCoverModeUseCase: SaveCoverModeUseCase = mock()
     private val getPageImageUseCase: GetPageImageUseCase = mock()
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
     private val closeDocumentUseCase: CloseDocumentUseCase = mock()
@@ -50,7 +51,7 @@ class ReaderContinuousModeTest {
     fun `continuous mode should maintain neighbor pages in cache`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 100)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(50, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(50, 1.0f), ReadingDirection.LTR, true)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -61,6 +62,7 @@ class ReaderContinuousModeTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -83,7 +85,7 @@ class ReaderContinuousModeTest {
     fun `zoom change should trigger re-rendering for all visible neighbor pages`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 100)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(10, 1.0f), ReadingDirection.TTB)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(10, 1.0f), ReadingDirection.TTB, true)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -94,6 +96,7 @@ class ReaderContinuousModeTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -117,7 +120,7 @@ class ReaderContinuousModeTest {
     fun `onZoomChanged should NOT clear cache but update zoom level`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -128,6 +131,7 @@ class ReaderContinuousModeTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -152,7 +156,7 @@ class ReaderContinuousModeTest {
     fun `resetZoom should set zoom level back to 1_0`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 2.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 2.0f), ReadingDirection.LTR, true)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -163,6 +167,7 @@ class ReaderContinuousModeTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -186,7 +191,7 @@ class ReaderContinuousModeTest {
     fun `zoom level should remain fixed after fingers leave display`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -197,6 +202,7 @@ class ReaderContinuousModeTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,

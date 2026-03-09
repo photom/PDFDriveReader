@@ -16,7 +16,7 @@ import com.hitsuji.pdfdrivereader.data.local.entity.ReadingSessionEntity
         ReadingSessionEntity::class,
         NavHistoryEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

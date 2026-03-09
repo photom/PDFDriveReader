@@ -60,6 +60,14 @@ To prevent memory leaks and file handle exhaustion:
   - A new document is opened, replacing the current one.
 - **Safety**: Use `try-finally` blocks or Kotlin's `.use {}` extension to ensure `close()` is called even if rendering fails.
 
+### Cover Detection & View Mode
+Some PDFs contain covers (first and/or last page) that differ in physical dimensions from the rest of the document's pages.
+- **Cover Detection Logic**: Upon initialization, the app must load the dimensions of every page. If the first page and/or the last page has a different size compared to the majority (the rest) of the pages, they are marked as covers.
+- **View Modes**: 
+  - **w/o cover mode**: The reader skips rendering the cover pages and only displays the non-cover pages.
+  - **w/ cover mode**: The reader displays all pages in the document.
+- **Toggle Mechanism**: A toggle menu in the Reader UI allows the user to switch between these modes dynamically.
+
 ### Cloud File Materialization (Downloading)
 Since `PdfRenderer` requires local file access, documents from Google Drive must be "materialized" before viewing:
 - **Download Cache**: Cloud files must be downloaded to the app's internal `cacheDir/cloud_docs/` directory.

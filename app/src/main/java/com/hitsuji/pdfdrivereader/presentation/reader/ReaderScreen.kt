@@ -67,20 +67,27 @@ fun ReaderScreen(
             }
         }
 
-        val listState = rememberLazyListState(initialFirstVisibleItemIndex = state.currentPage)
+        val initialListIndex = remember(state.currentPage, state.visiblePages) {
+            state.visiblePages.indexOf(state.currentPage).coerceAtLeast(0)
+        }
+        val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialListIndex)
 
-        LaunchedEffect(listState) {
+        LaunchedEffect(listState, state.visiblePages) {
             snapshotFlow { listState.firstVisibleItemIndex }
-                .collect { index ->
-                    if (index != state.currentPage) {
-                        viewModel.onPageChanged(index)
+                .collect { listIndex ->
+                    if (listIndex in state.visiblePages.indices) {
+                        val pageIndex = state.visiblePages[listIndex]
+                        if (pageIndex != state.currentPage) {
+                            viewModel.onPageChanged(pageIndex)
+                        }
                     }
                 }
         }
 
-        LaunchedEffect(state.currentPage) {
-            if (!listState.isScrollInProgress && listState.firstVisibleItemIndex != state.currentPage) {
-                listState.scrollToItem(state.currentPage)
+        LaunchedEffect(state.currentPage, state.visiblePages) {
+            val targetListIndex = state.visiblePages.indexOf(state.currentPage)
+            if (targetListIndex != -1 && !listState.isScrollInProgress && listState.firstVisibleItemIndex != targetListIndex) {
+                listState.scrollToItem(targetListIndex)
             }
         }
 
@@ -267,8 +274,9 @@ fun ReaderScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(state.document?.totalPageCount ?: 0) { index ->
-                                    PdfPageDisplay(state, index, containerMaxWidth, containerMaxHeight)
+                                items(state.visiblePages.size) { listIndex ->
+                                    val pageIndex = state.visiblePages[listIndex]
+                                    PdfPageDisplay(state, pageIndex, containerMaxWidth, containerMaxHeight)
                                 }
                             }
                         }
@@ -280,8 +288,9 @@ fun ReaderScreen(
                                 reverseLayout = true,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(state.document?.totalPageCount ?: 0) { index ->
-                                    PdfPageDisplay(state, index, containerMaxWidth, containerMaxHeight)
+                                items(state.visiblePages.size) { listIndex ->
+                                    val pageIndex = state.visiblePages[listIndex]
+                                    PdfPageDisplay(state, pageIndex, containerMaxWidth, containerMaxHeight)
                                 }
                             }
                         }
@@ -292,8 +301,9 @@ fun ReaderScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(state.document?.totalPageCount ?: 0) { index ->
-                                    PdfPageDisplay(state, index, containerMaxWidth, containerMaxHeight)
+                                items(state.visiblePages.size) { listIndex ->
+                                    val pageIndex = state.visiblePages[listIndex]
+                                    PdfPageDisplay(state, pageIndex, containerMaxWidth, containerMaxHeight)
                                 }
                             }
                         }
@@ -323,6 +333,13 @@ fun ReaderScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(if (state.isCoverModeEnabled) "Hide Cover Pages" else "Show Cover Pages") },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.onCoverModeChanged(!state.isCoverModeEnabled)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Reading Direction") },
                                 onClick = {
@@ -364,14 +381,16 @@ fun ReaderScreen(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    var sliderValue by remember { mutableFloatStateOf(state.currentPage.toFloat()) }
+                    var sliderValue by remember { mutableFloatStateOf(0f) }
                     
-                    LaunchedEffect(state.currentPage) {
-                        sliderValue = state.currentPage.toFloat()
+                    LaunchedEffect(state.currentPage, state.visiblePages) {
+                        sliderValue = state.visiblePages.indexOf(state.currentPage).coerceAtLeast(0).toFloat()
                     }
 
+                    val displayPage = state.visiblePages.getOrNull(sliderValue.toInt()) ?: 0
+
                     Text(
-                        "Page ${sliderValue.toInt() + 1} of ${state.document?.totalPageCount ?: 0}",
+                        "Page ${displayPage + 1} of ${state.document?.totalPageCount ?: 0}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -381,18 +400,20 @@ fun ReaderScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "${sliderValue.toInt() + 1}",
+                            text = "${displayPage + 1}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.width(32.dp)
                         )
+                        val maxSlider = (state.visiblePages.size - 1).coerceAtLeast(0).toFloat()
                         Slider(
                             value = sliderValue,
                             onValueChange = { sliderValue = it },
                             onValueChangeFinished = {
-                                viewModel.onPageChanged(sliderValue.toInt())
+                                val targetPage = state.visiblePages.getOrNull(sliderValue.toInt()) ?: 0
+                                viewModel.onPageChanged(targetPage)
                             },
-                            valueRange = 0f..(state.document?.totalPageCount?.minus(1)?.toFloat() ?: 0f),
+                            valueRange = 0f..maxSlider,
                             modifier = Modifier.weight(1f)
                         )
                         Text(

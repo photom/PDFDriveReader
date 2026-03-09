@@ -30,7 +30,7 @@ A distraction-free environment for document consumption.
   - **Aspect Ratio**: The app must preserve the original width-to-height ratio of each page.
   - **Best Fit**: Pages must be scaled to fit the display width or height, whichever is reached first, without stretching or distortion.
 - **Page Indicators**: Displayed as "Page [Current] of [Total]" using **1-indexed** numbering (e.g., Page 1 of 50).
-- **Menu Interaction**: ...
+- **Menu Interaction**: Includes options to change reading direction and toggle "w/o cover mode".
 - **Back Navigation**: 
   - If **Link History exists**: System Back returns to the previous position.
   - If **Link History is empty** and **UI is visible**: System Back hides the UI overlay.
@@ -69,6 +69,7 @@ A distraction-free environment for document consumption.
   - **Reading Direction**: (L-to-R, R-to-L, or T-to-B).
   - **Last Page**: The exact page index.
   - **Zoom Level**: The user's last used zoom percentage (e.g., 150%).
+  - **Cover Mode**: Tracks whether "w/o cover mode" is enabled or not.
 - **Navigation History**: Link backstack is persisted across backgrounding but cleared when a different document is opened.
 - **Last File**: Automatically opens the previously viewed PDF if Reader Mode is the active mode on launch.
 - **Cache**: Stores active mode, file metadata (via `file_uri`), and settings in an SQLite database.
