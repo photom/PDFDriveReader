@@ -621,7 +621,7 @@ fun PdfPageDisplay(
                         val right = (rectF.right / pdfSize.width) * size.width
                         val bottom = (rectF.bottom / pdfSize.height) * size.height
                         drawRect(
-                            color = Color(0x4D0000FF), // Primary blue with 30% alpha
+                            color = Color(0x66137EC2), // Chrome-like light blue with alpha
                             topLeft = Offset(left, top),
                             size = androidx.compose.ui.geometry.Size(right - left, bottom - top)
                         )
@@ -633,11 +633,22 @@ fun PdfPageDisplay(
                         val stopX = (stopHandle.x / pdfSize.width) * size.width
                         val stopY = (stopHandle.y / pdfSize.height) * size.height
                         
-                        drawCircle(color = Color.Blue, radius = 6.dp.toPx(), center = Offset(startX, startY))
-                        drawLine(color = Color.Blue, start = Offset(startX, startY), end = Offset(startX, startY - 12.dp.toPx()), strokeWidth = 2.dp.toPx())
+                        val r = 11.dp.toPx()
+                        val handleColor = Color(0xFF137EC2) // Chrome-like solid blue
                         
-                        drawCircle(color = Color.Blue, radius = 6.dp.toPx(), center = Offset(stopX, stopY))
-                        drawLine(color = Color.Blue, start = Offset(stopX, stopY), end = Offset(stopX, stopY - 12.dp.toPx()), strokeWidth = 2.dp.toPx())
+                        // Left handle (start): teardrop pointing top-right
+                        // Point is at (startX, startY)
+                        val startCx = startX - r
+                        val startCy = startY + r
+                        drawCircle(color = handleColor, radius = r, center = Offset(startCx, startCy))
+                        drawRect(color = handleColor, topLeft = Offset(startCx, startY), size = androidx.compose.ui.geometry.Size(r, r))
+                        
+                        // Right handle (stop): teardrop pointing top-left
+                        // Point is at (stopX, stopY)
+                        val stopCx = stopX + r
+                        val stopCy = stopY + r
+                        drawCircle(color = handleColor, radius = r, center = Offset(stopCx, stopCy))
+                        drawRect(color = handleColor, topLeft = Offset(stopX, stopY), size = androidx.compose.ui.geometry.Size(r, r))
                     }
                 }
             }
