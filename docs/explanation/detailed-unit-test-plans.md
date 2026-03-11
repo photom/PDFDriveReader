@@ -169,7 +169,7 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Verification: Verifies that during panning (swiping) while zoomed in, the document moves exactly 1:1 with the user's finger on the screen (no drift between the touch point and the character).
 - **Inertia & Physics**
     - [ ] Verification: Verifies that release velocity is used to initialize a decay animation.
-    - [ ] Verification: Verifies that the momentum is distributed between viewport offset and list scroll position based on edge clamping.
+    - [ ] Verification: Verifies that the momentum from an active decay seamlessly distributes between viewport offset and list scroll position (`dispatchRawDelta`) without cancelling the animation prematurely when hitting viewport edges.
     - [ ] Verification: Verifies that the document does not automatically snap or move after the momentum finishes.
 
 ### 3.7 Text Selection & Copy (API 35+)
