@@ -60,8 +60,9 @@ fun ReaderScreen(
         }
 
         val scaleAnim = remember { Animatable(state.zoomLevel) }
-        val offsetXAnim = remember { Animatable(0f) }
-        val offsetYAnim = remember { Animatable(0f) }
+        var offsetX by remember { mutableFloatStateOf(0f) }
+        var offsetY by remember { mutableFloatStateOf(0f) }
+        var decayJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
         val coroutineScope = rememberCoroutineScope()
 
         LaunchedEffect(state.zoomLevel) {
@@ -105,10 +106,9 @@ fun ReaderScreen(
                             var isPinching = false
                             
                             awaitFirstDown(requireUnconsumed = false)
-                            launch { 
-                                offsetXAnim.stop()
-                                offsetYAnim.stop()
-                            }
+                            decayJob?.cancel()
+
+                            var currentZoom = scaleAnim.value
 
                             do {
                                 val event = awaitPointerEvent()
@@ -120,8 +120,10 @@ fun ReaderScreen(
 
                                     if (zoomChange != 1f || panChange != Offset.Zero) {
                                         if (zoomChange != 1f) isPinching = true
-                                        val oldScale = scaleAnim.value
+                                        val oldScale = currentZoom
                                         val newScale = (oldScale * zoomChange).coerceIn(1f, 5f)
+                                        currentZoom = newScale
+
                                         launch { scaleAnim.snapTo(newScale) }
 
                                         val extraWidth = (newScale - 1) * size.width
@@ -132,40 +134,38 @@ fun ReaderScreen(
 
                                         if (centroid != Offset.Unspecified) {
                                             val center = Offset(size.width / 2f, size.height / 2f)
-                                            val targetOffsetX = panChange.x + (centroid.x - center.x) * (1 - newScale / oldScale) + offsetXAnim.value * (newScale / oldScale)
-                                            val targetOffsetY = panChange.y + (centroid.y - center.y) * (1 - newScale / oldScale) + offsetYAnim.value * (newScale / oldScale)
+                                            val targetOffsetX = panChange.x + (centroid.x - center.x) * (1 - newScale / oldScale) + offsetX * (newScale / oldScale)
+                                            val targetOffsetY = panChange.y + (centroid.y - center.y) * (1 - newScale / oldScale) + offsetY * (newScale / oldScale)
                                             val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
                                             val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
                                             val spillX = targetOffsetX - clampedX
                                             val spillY = targetOffsetY - clampedY
 
-                                            launch {
-                                                offsetXAnim.snapTo(clampedX)
-                                                offsetYAnim.snapTo(clampedY)
-                                                if (isHorizontalMain) {
-                                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
-                                                    listState.scrollBy(scrollAmount / newScale)
-                                                } else {
-                                                    listState.scrollBy(-spillY / newScale)
-                                                }
+                                            offsetX = clampedX
+                                            offsetY = clampedY
+                                            
+                                            if (isHorizontalMain) {
+                                                val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
+                                                listState.dispatchRawDelta(scrollAmount / newScale)
+                                            } else {
+                                                listState.dispatchRawDelta(-spillY / newScale)
                                             }
                                         } else {
-                                            val targetOffsetX = offsetXAnim.value + panChange.x
-                                            val targetOffsetY = offsetYAnim.value + panChange.y
+                                            val targetOffsetX = offsetX + panChange.x
+                                            val targetOffsetY = offsetY + panChange.y
                                             val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
                                             val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
                                             val spillX = targetOffsetX - clampedX
                                             val spillY = targetOffsetY - clampedY
 
-                                            launch {
-                                                offsetXAnim.snapTo(clampedX)
-                                                offsetYAnim.snapTo(clampedY)
-                                                if (isHorizontalMain) {
-                                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
-                                                    listState.scrollBy(scrollAmount / newScale)
-                                                } else {
-                                                    listState.scrollBy(-spillY / newScale)
-                                                }
+                                            offsetX = clampedX
+                                            offsetY = clampedY
+                                            
+                                            if (isHorizontalMain) {
+                                                val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
+                                                listState.dispatchRawDelta(scrollAmount / newScale)
+                                            } else {
+                                                listState.dispatchRawDelta(-spillY / newScale)
                                             }
                                         }
                                         
@@ -181,7 +181,6 @@ fun ReaderScreen(
 
                             if (!isPinching && scaleAnim.value > 1f) {
                                 val velocity = velocityTracker.calculateVelocity()
-                                // Scale velocity by zoom level so panning inertia is consistent at all zoom levels
                                 val targetVelocity = calculateTargetVelocity(velocity, scaleAnim.value)
                                 val amplifiedVelocityX = targetVelocity.x
                                 val amplifiedVelocityY = targetVelocity.y
@@ -192,31 +191,49 @@ fun ReaderScreen(
                                 val maxY = extraHeight / 2f
                                 val isHorizontalMain = state.direction != ReadingDirection.TTB
 
-                                launch {
-                                    offsetXAnim.animateDecay(initialVelocity = amplifiedVelocityX, animationSpec = exponentialDecay()) {
-                                        val clampedValue = value.coerceIn(-maxX, maxX)
-                                        val overscroll = value - clampedValue
-                                        if (overscroll != 0f) {
-                                            launch { 
-                                                offsetXAnim.snapTo(clampedValue)
-                                                if (isHorizontalMain) {
-                                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) overscroll else -overscroll
-                                                    listState.scrollBy(scrollAmount)
+                                decayJob = launch {
+                                    launch {
+                                        var lastValue = offsetX
+                                        androidx.compose.animation.core.AnimationState(initialValue = lastValue, initialVelocity = amplifiedVelocityX).animateDecay(androidx.compose.animation.core.exponentialDecay()) {
+                                            val delta = value - lastValue
+                                            lastValue = value
+                                            
+                                            val targetX = offsetX + delta
+                                            val clampedX = targetX.coerceIn(-maxX, maxX)
+                                            val spillX = targetX - clampedX
+                                            
+                                            offsetX = clampedX
+                                            
+                                            if (isHorizontalMain && spillX != 0f) {
+                                                val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
+                                                val consumed = listState.dispatchRawDelta(scrollAmount / scaleAnim.value)
+                                                if (kotlin.math.abs(consumed) < kotlin.math.abs(scrollAmount / scaleAnim.value) - 0.5f) {
+                                                    cancelAnimation()
                                                 }
+                                            } else if (!isHorizontalMain && spillX != 0f) {
+                                                cancelAnimation()
                                             }
                                         }
                                     }
-                                }
-                                launch {
-                                    offsetYAnim.animateDecay(initialVelocity = amplifiedVelocityY, animationSpec = exponentialDecay()) {
-                                        val clampedValue = value.coerceIn(-maxY, maxY)
-                                        val overscroll = value - clampedValue
-                                        if (overscroll != 0f) {
-                                            launch { 
-                                                offsetYAnim.snapTo(clampedValue)
-                                                if (!isHorizontalMain) {
-                                                    listState.scrollBy(-overscroll)
+                                    launch {
+                                        var lastValue = offsetY
+                                        androidx.compose.animation.core.AnimationState(initialValue = lastValue, initialVelocity = amplifiedVelocityY).animateDecay(androidx.compose.animation.core.exponentialDecay()) {
+                                            val delta = value - lastValue
+                                            lastValue = value
+                                            
+                                            val targetY = offsetY + delta
+                                            val clampedY = targetY.coerceIn(-maxY, maxY)
+                                            val spillY = targetY - clampedY
+                                            
+                                            offsetY = clampedY
+                                            
+                                            if (!isHorizontalMain && spillY != 0f) {
+                                                val consumed = listState.dispatchRawDelta(-spillY / scaleAnim.value)
+                                                if (kotlin.math.abs(consumed) < kotlin.math.abs(-spillY / scaleAnim.value) - 0.5f) {
+                                                    cancelAnimation()
                                                 }
+                                            } else if (isHorizontalMain && spillY != 0f) {
+                                                cancelAnimation()
                                             }
                                         }
                                     }
@@ -232,9 +249,10 @@ fun ReaderScreen(
                     detectTapGestures(
                         onDoubleTap = {
                             coroutineScope.launch {
+                                decayJob?.cancel()
                                 launch { scaleAnim.animateTo(1f) }
-                                launch { offsetXAnim.animateTo(0f) }
-                                launch { offsetYAnim.animateTo(0f) }
+                                launch { androidx.compose.animation.core.animate(offsetX, 0f) { value, _ -> offsetX = value } }
+                                launch { androidx.compose.animation.core.animate(offsetY, 0f) { value, _ -> offsetY = value } }
                                 viewModel.resetZoom()
                             }
                         },
@@ -250,8 +268,8 @@ fun ReaderScreen(
                 .graphicsLayer(
                     scaleX = scaleAnim.value,
                     scaleY = scaleAnim.value,
-                    translationX = offsetXAnim.value,
-                    translationY = offsetYAnim.value
+                    translationX = offsetX,
+                    translationY = offsetY
                 )
         ) {
             when {
