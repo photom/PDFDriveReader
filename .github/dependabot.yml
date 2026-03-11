@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Enable version updates for Gradle dependencies
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Optional: Increase the limit of open PRs (default is 5)
+    open-pull-requests-limit: 10
+
+  # Highly Recommended: Keep your GitHub Actions updated too
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
