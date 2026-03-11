@@ -131,8 +131,9 @@ fun ReaderScreen(
                                         val isHorizontalMain = state.direction != ReadingDirection.TTB
 
                                         if (centroid != Offset.Unspecified) {
-                                            val targetOffsetX = centroid.x - (centroid.x - offsetXAnim.value - panChange.x * oldScale) * (newScale / oldScale)
-                                            val targetOffsetY = centroid.y - (centroid.y - offsetYAnim.value - panChange.y * oldScale) * (newScale / oldScale)
+                                            val center = Offset(size.width / 2f, size.height / 2f)
+                                            val targetOffsetX = panChange.x + (centroid.x - center.x) * (1 - newScale / oldScale) + offsetXAnim.value * (newScale / oldScale)
+                                            val targetOffsetY = panChange.y + (centroid.y - center.y) * (1 - newScale / oldScale) + offsetYAnim.value * (newScale / oldScale)
                                             val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
                                             val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
                                             val spillX = targetOffsetX - clampedX
@@ -143,14 +144,14 @@ fun ReaderScreen(
                                                 offsetYAnim.snapTo(clampedY)
                                                 if (isHorizontalMain) {
                                                     val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
-                                                    listState.scrollBy(scrollAmount)
+                                                    listState.scrollBy(scrollAmount / newScale)
                                                 } else {
-                                                    listState.scrollBy(-spillY)
+                                                    listState.scrollBy(-spillY / newScale)
                                                 }
                                             }
                                         } else {
-                                            val targetOffsetX = offsetXAnim.value + panChange.x * oldScale
-                                            val targetOffsetY = offsetYAnim.value + panChange.y * oldScale
+                                            val targetOffsetX = offsetXAnim.value + panChange.x
+                                            val targetOffsetY = offsetYAnim.value + panChange.y
                                             val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
                                             val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
                                             val spillX = targetOffsetX - clampedX
@@ -161,9 +162,9 @@ fun ReaderScreen(
                                                 offsetYAnim.snapTo(clampedY)
                                                 if (isHorizontalMain) {
                                                     val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
-                                                    listState.scrollBy(scrollAmount)
+                                                    listState.scrollBy(scrollAmount / newScale)
                                                 } else {
-                                                    listState.scrollBy(-spillY)
+                                                    listState.scrollBy(-spillY / newScale)
                                                 }
                                             }
                                         }
@@ -716,10 +717,7 @@ fun ReaderScreenPreview() {
 }
 
 internal fun calculateTargetVelocity(baseVelocity: androidx.compose.ui.unit.Velocity, zoomScale: Float): androidx.compose.ui.unit.Velocity {
-    // Scale velocity by the zoom level to ensure the physical flick feels consistent
-    // regardless of how far the document is zoomed in.
-    return androidx.compose.ui.unit.Velocity(
-        x = baseVelocity.x * zoomScale,
-        y = baseVelocity.y * zoomScale
-    )
+    // With translation strictly mapped 1:1 to screen pixels, the velocity tracker directly provides
+    // the correct screen-pixel decay velocity. No scaling is needed.
+    return baseVelocity
 }

@@ -46,6 +46,7 @@ A distraction-free environment for document consumption.
 | Page Slider | **Dragging**: Updates the page number indicator in real-time for immediate feedback. |
 | Page Slider | **Release**: Triggers the actual page jump and document rendering upon finger release to prevent hanging. |
 | Zoom | Pinch gestures in Reader Mode (100% - 500%). |
+| Zoom Pan | During active zoom (> 100%), swiping/panning must translate the document exactly 1:1 with the finger movement (no coordinate drift). |
 | Zoom Reset | Double-tap in Reader Mode to 100%. |
 | Navigation History | Link jumps save the previous position; swipe back to return. |
 
