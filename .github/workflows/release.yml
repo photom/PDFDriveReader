@@ -1,0 +1,52 @@
+name: Build Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      buildType:
+        description: 'Build Type'
+        required: true
+        default: 'apk'
+        type: choice
+        options:
+          - apk
+          - aab
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        if: ${{ github.event.inputs.buildType == 'apk' }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Build Release AAB
+        if: ${{ github.event.inputs.buildType == 'aab' }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Upload Release APK Artifact
+        if: ${{ github.event.inputs.buildType == 'apk' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Upload Release AAB Artifact
+        if: ${{ github.event.inputs.buildType == 'aab' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: app/build/outputs/bundle/release/*.aab
