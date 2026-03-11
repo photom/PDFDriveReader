@@ -593,10 +593,7 @@ fun PdfPageDisplay(
             )
             
             // Draw text selection bounds if they exist for this page
-            // Note: Since textSelection is not page-specific in state currently, 
-            // we assume the user selects on the active page. 
-            // In a full implementation, we'd check if textSelection belongs to this page.
-            if (state.textSelection != null && state.currentPage == pageIndex) {
+            if (state.textSelection != null && state.textSelection.pageIndex == pageIndex) {
                 val startHandle = state.textSelection.startHandle
                 val stopHandle = state.textSelection.stopHandle
 

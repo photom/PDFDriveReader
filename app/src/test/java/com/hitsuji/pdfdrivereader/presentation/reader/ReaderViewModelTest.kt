@@ -336,7 +336,7 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
-        val selection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Selected Text", emptyList())
+        val selection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(0, "Selected Text", emptyList(), android.graphics.PointF(10f, 20f), android.graphics.PointF(10f, 20f))
         whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(10), eq(20), eq(10), eq(20))) doReturn selection
         
         viewModel = ReaderViewModel(
@@ -381,7 +381,7 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
-        val initialSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Word", listOf(android.graphics.RectF(10f, 10f, 30f, 20f)))
+        val initialSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(0, "Word", listOf(android.graphics.RectF(10f, 10f, 30f, 20f)), android.graphics.PointF(20f, 15f), android.graphics.PointF(20f, 15f))
         whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(20), eq(15), eq(20), eq(15))) doReturn initialSelection
         
         viewModel = ReaderViewModel(
@@ -403,15 +403,15 @@ class ReaderViewModelTest {
         advanceUntilIdle()
         assertEquals(initialSelection, viewModel.state.value.textSelection)
         
-        val newStartSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Start Word", listOf(android.graphics.RectF(5f, 10f, 30f, 20f)))
-        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(5), eq(15), eq(30), eq(20))) doReturn newStartSelection
+        val newStartSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(0, "Start Word", listOf(android.graphics.RectF(5f, 10f, 30f, 20f)), android.graphics.PointF(5f, 15f), android.graphics.PointF(20f, 15f))
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(5), eq(15), eq(20), eq(15))) doReturn newStartSelection
         
         viewModel.updateSelectionStart(0, 5, 15)
         advanceUntilIdle()
         assertEquals(newStartSelection, viewModel.state.value.textSelection)
         
-        val newStopSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Start Word End", listOf(android.graphics.RectF(5f, 10f, 40f, 20f)))
-        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(5), eq(10), eq(40), eq(15))) doReturn newStopSelection
+        val newStopSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(0, "Start Word End", listOf(android.graphics.RectF(5f, 10f, 40f, 20f)), android.graphics.PointF(5f, 15f), android.graphics.PointF(40f, 15f))
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(5), eq(15), eq(40), eq(15))) doReturn newStopSelection
         
         viewModel.updateSelectionStop(0, 40, 15)
         advanceUntilIdle()
@@ -433,7 +433,7 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
-        val selection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Word", listOf(android.graphics.RectF(10f, 10f, 30f, 20f)))
+        val selection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(0, "Word", listOf(android.graphics.RectF(10f, 10f, 30f, 20f)), android.graphics.PointF(15f, 15f), android.graphics.PointF(15f, 15f))
         whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(15), eq(15), eq(15), eq(15))) doReturn selection
         
         viewModel = ReaderViewModel(

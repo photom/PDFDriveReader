@@ -178,6 +178,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Verification: Verifies that the selection is cleared when a user taps outside of the selected range or navigates away.
     - [ ] Verification: Verifies that the selection remains active when a user taps inside the selected range.
     - [ ] Verification: Verifies that updating the start or end bounds of a selection triggers a state update with the new extracted text and bounds.
+    - [ ] Verification: Verifies that when dragging one selection handle, the coordinate of the other (stationary) handle does not change or drift.
+    - [ ] Verification: Verifies that rapid updates to selection bounds (like dragging a handle) are conflated/debounced to prevent spamming the native `PdfRenderer`.
+    - [ ] Verification: Verifies that the text selection remains drawn and anchored strictly to the page it was initiated on, even if the primary focused `currentPage` index changes.
     - [ ] Verification: Verifies that standard Reader gestures (swiping, panning, zooming) are disabled while a text selection is active.
 - **API Version Compatibility**
     - [ ] Verification: Verifies that on API < 35, the `selectText` method safely returns `null` or an empty state without causing a crash.

@@ -11,6 +11,7 @@ import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -43,6 +44,7 @@ class ReaderViewModel @Inject constructor(
     
     private var screenWidth: Int = 1080
     private var screenHeight: Int = 1920
+    private var selectionJob: Job? = null
 
     fun updateScreenDimensions(width: Int, height: Int) {
         screenWidth = width
@@ -256,14 +258,18 @@ class ReaderViewModel @Inject constructor(
     fun updateSelectionStart(pageIndex: Int, newStartX: Int, newStartY: Int) {
         val uri = _state.value.document?.id ?: return
         val stopHandle = _state.value.textSelection?.stopHandle ?: return
-        viewModelScope.launch {
+        selectionJob?.cancel()
+        selectionJob = viewModelScope.launch {
+            delay(30) // Debounce rapid drag events
             try {
                 val selection = getTextSelectionUseCase(uri, pageIndex, newStartX, newStartY, stopHandle.x.toInt(), stopHandle.y.toInt())
-                if (selection != null) {
+                if (selection != null && isActive) {
                     _state.update { it.copy(textSelection = selection) }
                 }
             } catch (e: Exception) {
-                Log.e("PDFDriveReader", "Failed to update start selection", e)
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e("PDFDriveReader", "Failed to update start selection", e)
+                }
             }
         }
     }
@@ -271,14 +277,18 @@ class ReaderViewModel @Inject constructor(
     fun updateSelectionStop(pageIndex: Int, newStopX: Int, newStopY: Int) {
         val uri = _state.value.document?.id ?: return
         val startHandle = _state.value.textSelection?.startHandle ?: return
-        viewModelScope.launch {
+        selectionJob?.cancel()
+        selectionJob = viewModelScope.launch {
+            delay(30) // Debounce rapid drag events
             try {
                 val selection = getTextSelectionUseCase(uri, pageIndex, startHandle.x.toInt(), startHandle.y.toInt(), newStopX, newStopY)
-                if (selection != null) {
+                if (selection != null && isActive) {
                     _state.update { it.copy(textSelection = selection) }
                 }
             } catch (e: Exception) {
-                Log.e("PDFDriveReader", "Failed to update stop selection", e)
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e("PDFDriveReader", "Failed to update stop selection", e)
+                }
             }
         }
     }
