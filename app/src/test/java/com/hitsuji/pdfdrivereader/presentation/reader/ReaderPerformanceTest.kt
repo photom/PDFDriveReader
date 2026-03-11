@@ -64,7 +64,8 @@ class ReaderPerformanceTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)
@@ -113,7 +114,8 @@ class ReaderPerformanceTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)

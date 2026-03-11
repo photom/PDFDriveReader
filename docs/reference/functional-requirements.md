@@ -126,3 +126,9 @@ To facilitate troubleshooting and robust state management:
 - **Uncaught Failures**: Exceptions in background coroutines must be caught and logged at the `ERROR` level with stack traces.
 - **State Integrity**: If a Google Sign-In result is received but the internal `driveService` fails to initialize, the `authState` must be explicitly reset to `false` to avoid a "stuck" UI state.
 - **Result Types**: Repositories and UseCases must return a `Result<T>` or a sealed `Outcome` class rather than throwing exceptions, allowing the ViewModel to update the UI error state.
+
+### Text Selection & Copy (Android 15+)
+- **Availability**: The application must support text selection and copying natively using `PdfRenderer.Page.selectContent()` or `getTextContents()` on Android 15 (API 35) and above.
+- **Graceful Degradation**: On devices running Android 14 or lower (API < 35), text selection features should be safely disabled or gracefully fallback without crashing, since the `PdfRenderer` APIs for text extraction are not available.
+- **Behavior**: Long-pressing on text should trigger a selection mode. Visual drag handles must appear at the start and end of the selection, allowing the user to drag to adjust the selection boundaries dynamically. A context menu with a "Copy" action must be presented upon successful selection. During this mode, primary reader gestures (panning, pagination, zooming) must be disabled.
+- **State Management**: The current text selection bounds (including the exact start and stop coordinates) and extracted text must be managed by the Reader state. Dragging a handle updates the coordinates and triggers a re-selection. Switching pages, closing the document, or tapping outside the currently selected bounds should clear the active selection. Tapping inside the selected bounds should keep the selection active.

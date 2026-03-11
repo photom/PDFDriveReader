@@ -27,6 +27,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.animation.core.*
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import com.hitsuji.pdfdrivereader.domain.model.ReadingDirection
 import com.hitsuji.pdfdrivereader.presentation.theme.PdfDriveReaderTheme
 import kotlinx.coroutines.coroutineScope
@@ -41,6 +43,7 @@ fun ReaderScreen(
     val state by viewModel.state.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     var showDirectionDialog by remember { mutableStateOf(false) }
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
     BoxWithConstraints(
         modifier = Modifier
@@ -94,7 +97,8 @@ fun ReaderScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(state.direction) {
+                .pointerInput(state.direction, state.textSelection != null) {
+                    if (state.textSelection != null) return@pointerInput
                     coroutineScope {
                         awaitEachGesture {
                             val velocityTracker = VelocityTracker()
@@ -176,6 +180,11 @@ fun ReaderScreen(
 
                             if (!isPinching && scaleAnim.value > 1f) {
                                 val velocity = velocityTracker.calculateVelocity()
+                                // Scale velocity by zoom level so panning inertia is consistent at all zoom levels
+                                val targetVelocity = calculateTargetVelocity(velocity, scaleAnim.value)
+                                val amplifiedVelocityX = targetVelocity.x
+                                val amplifiedVelocityY = targetVelocity.y
+                                
                                 val extraWidth = (scaleAnim.value - 1) * size.width
                                 val extraHeight = (scaleAnim.value - 1) * size.height
                                 val maxX = extraWidth / 2f
@@ -183,7 +192,7 @@ fun ReaderScreen(
                                 val isHorizontalMain = state.direction != ReadingDirection.TTB
 
                                 launch {
-                                    offsetXAnim.animateDecay(initialVelocity = velocity.x, animationSpec = exponentialDecay()) {
+                                    offsetXAnim.animateDecay(initialVelocity = amplifiedVelocityX, animationSpec = exponentialDecay()) {
                                         val clampedValue = value.coerceIn(-maxX, maxX)
                                         val overscroll = value - clampedValue
                                         if (overscroll != 0f) {
@@ -198,7 +207,7 @@ fun ReaderScreen(
                                     }
                                 }
                                 launch {
-                                    offsetYAnim.animateDecay(initialVelocity = velocity.y, animationSpec = exponentialDecay()) {
+                                    offsetYAnim.animateDecay(initialVelocity = amplifiedVelocityY, animationSpec = exponentialDecay()) {
                                         val clampedValue = value.coerceIn(-maxY, maxY)
                                         val overscroll = value - clampedValue
                                         if (overscroll != 0f) {
@@ -229,7 +238,11 @@ fun ReaderScreen(
                             }
                         },
                         onTap = {
-                            viewModel.toggleUI()
+                            if (state.textSelection != null) {
+                                viewModel.clearSelection()
+                            } else {
+                                viewModel.toggleUI()
+                            }
                         }
                     )
                 }
@@ -270,19 +283,32 @@ fun ReaderScreen(
                         ReadingDirection.LTR -> {
                             LazyRow(
                                 state = listState,
+                                userScrollEnabled = state.textSelection == null,
                                 modifier = Modifier.fillMaxSize(),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.visiblePages.size) { listIndex ->
                                     val pageIndex = state.visiblePages[listIndex]
-                                    PdfPageDisplay(state, pageIndex, containerMaxWidth, containerMaxHeight)
+                                    PdfPageDisplay(
+                                        state = state, 
+                                        pageIndex = pageIndex, 
+                                        containerWidth = containerMaxWidth, 
+                                        containerHeight = containerMaxHeight,
+                                        onDragStartHandle = { page, x, y -> viewModel.updateSelectionStart(page, x.toInt(), y.toInt()) },
+                                        onDragStopHandle = { page, x, y -> viewModel.updateSelectionStop(page, x.toInt(), y.toInt()) },
+                                        onLongPress = { page, x, y -> viewModel.selectTextAt(page, x.toInt(), y.toInt()) },
+                                        onTap = { _, x, y ->
+                                            viewModel.onDocumentTapped(x.toInt(), y.toInt())
+                                        }
+                                    )
                                 }
                             }
                         }
                         ReadingDirection.RTL -> {
                             LazyRow(
                                 state = listState,
+                                userScrollEnabled = state.textSelection == null,
                                 modifier = Modifier.fillMaxSize(),
                                 verticalAlignment = Alignment.CenterVertically,
                                 reverseLayout = true,
@@ -290,20 +316,43 @@ fun ReaderScreen(
                             ) {
                                 items(state.visiblePages.size) { listIndex ->
                                     val pageIndex = state.visiblePages[listIndex]
-                                    PdfPageDisplay(state, pageIndex, containerMaxWidth, containerMaxHeight)
+                                    PdfPageDisplay(
+                                        state = state, 
+                                        pageIndex = pageIndex, 
+                                        containerWidth = containerMaxWidth, 
+                                        containerHeight = containerMaxHeight,
+                                        onDragStartHandle = { page, x, y -> viewModel.updateSelectionStart(page, x.toInt(), y.toInt()) },
+                                        onDragStopHandle = { page, x, y -> viewModel.updateSelectionStop(page, x.toInt(), y.toInt()) },
+                                        onLongPress = { page, x, y -> viewModel.selectTextAt(page, x.toInt(), y.toInt()) },
+                                        onTap = { _, x, y ->
+                                            viewModel.onDocumentTapped(x.toInt(), y.toInt())
+                                        }
+                                    )
                                 }
                             }
                         }
                         ReadingDirection.TTB -> {
                             LazyColumn(
                                 state = listState,
+                                userScrollEnabled = state.textSelection == null,
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(state.visiblePages.size) { listIndex ->
                                     val pageIndex = state.visiblePages[listIndex]
-                                    PdfPageDisplay(state, pageIndex, containerMaxWidth, containerMaxHeight)
+                                    PdfPageDisplay(
+                                        state = state, 
+                                        pageIndex = pageIndex, 
+                                        containerWidth = containerMaxWidth, 
+                                        containerHeight = containerMaxHeight,
+                                        onDragStartHandle = { page, x, y -> viewModel.updateSelectionStart(page, x.toInt(), y.toInt()) },
+                                        onDragStopHandle = { page, x, y -> viewModel.updateSelectionStop(page, x.toInt(), y.toInt()) },
+                                        onLongPress = { page, x, y -> viewModel.selectTextAt(page, x.toInt(), y.toInt()) },
+                                        onTap = { _, x, y ->
+                                            viewModel.onDocumentTapped(x.toInt(), y.toInt())
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -438,18 +487,49 @@ fun ReaderScreen(
                 onDismiss = { showDirectionDialog = false }
             )
         }
+
+        if (state.textSelection != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 72.dp) // Below the top app bar if visible
+                    .background(MaterialTheme.colorScheme.surfaceVariant, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                    .padding(8.dp)
+            ) {
+                Button(onClick = {
+                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(state.textSelection!!.text))
+                    viewModel.clearSelection()
+                }) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Copy")
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun PdfPageDisplay(state: ReaderState, pageIndex: Int, containerWidth: androidx.compose.ui.unit.Dp, containerHeight: androidx.compose.ui.unit.Dp) {
+fun PdfPageDisplay(
+    state: ReaderState, 
+    pageIndex: Int, 
+    containerWidth: androidx.compose.ui.unit.Dp, 
+    containerHeight: androidx.compose.ui.unit.Dp,
+    onDragStartHandle: (Int, Float, Float) -> Unit,
+    onDragStopHandle: (Int, Float, Float) -> Unit,
+    onLongPress: (Int, Float, Float) -> Unit,
+    onTap: (Int, Float, Float) -> Unit
+) {
     val isVertical = state.direction == ReadingDirection.TTB
     
     // Calculate aspect ratio based on loaded page sizes
     val pageSizes = state.document?.pageSizes
-    val aspectRatio = if (!pageSizes.isNullOrEmpty() && pageIndex < pageSizes.size) {
-        val size = pageSizes[pageIndex]
-        size.width.toFloat() / size.height.toFloat()
+    val pdfSize = if (!pageSizes.isNullOrEmpty() && pageIndex < pageSizes.size) {
+        pageSizes[pageIndex]
+    } else null
+    
+    val aspectRatio = if (pdfSize != null) {
+        pdfSize.width.toFloat() / pdfSize.height.toFloat()
     } else {
         containerWidth.value / containerHeight.value
     }
@@ -460,8 +540,29 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int, containerWidth: androidx.
         Modifier.fillMaxHeight().aspectRatio(aspectRatio)
     }
 
+    var boxSize by remember { mutableStateOf(IntSize.Zero) }
+
     Box(
-        modifier = pageModifier,
+        modifier = pageModifier
+            .onSizeChanged { boxSize = it }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        if (pdfSize != null && boxSize.width > 0 && boxSize.height > 0) {
+                            val pdfX = (offset.x / boxSize.width) * pdfSize.width
+                            val pdfY = (offset.y / boxSize.height) * pdfSize.height
+                            onTap(pageIndex, pdfX, pdfY)
+                        }
+                    },
+                    onLongPress = { offset ->
+                        if (pdfSize != null && boxSize.width > 0 && boxSize.height > 0) {
+                            val pdfX = (offset.x / boxSize.width) * pdfSize.width
+                            val pdfY = (offset.y / boxSize.height) * pdfSize.height
+                            onLongPress(pageIndex, pdfX, pdfY)
+                        }
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
         val bitmap = state.pageCache[pageIndex]
@@ -471,6 +572,75 @@ fun PdfPageDisplay(state: ReaderState, pageIndex: Int, containerWidth: androidx.
                 contentDescription = "PDF Page ${pageIndex + 1}",
                 modifier = Modifier.fillMaxSize()
             )
+            
+            // Draw text selection bounds if they exist for this page
+            // Note: Since textSelection is not page-specific in state currently, 
+            // we assume the user selects on the active page. 
+            // In a full implementation, we'd check if textSelection belongs to this page.
+            if (state.textSelection != null && state.currentPage == pageIndex) {
+                val startHandle = state.textSelection.startHandle
+                val stopHandle = state.textSelection.stopHandle
+
+                androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()
+                    .pointerInput(state.textSelection) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                if (startHandle != null && stopHandle != null && pdfSize != null && boxSize.width > 0) {
+                                    val startX = (startHandle.x / pdfSize.width) * boxSize.width
+                                    val startY = (startHandle.y / pdfSize.height) * boxSize.height
+                                    val stopX = (stopHandle.x / pdfSize.width) * boxSize.width
+                                    val stopY = (stopHandle.y / pdfSize.height) * boxSize.height
+                                    val handleRadius = 24.dp.toPx()
+                                    val isStart = kotlin.math.hypot(down.position.x - startX, down.position.y - startY) <= handleRadius
+                                    val isStop = kotlin.math.hypot(down.position.x - stopX, down.position.y - stopY) <= handleRadius
+                                    
+                                    if (isStart || isStop) {
+                                        down.consume()
+                                        var dragEvent = awaitPointerEvent()
+                                        while (dragEvent.changes.any { it.pressed }) {
+                                            val change = dragEvent.changes.firstOrNull()
+                                            if (change != null) {
+                                                change.consume()
+                                                val pdfX = (change.position.x / boxSize.width) * pdfSize.width
+                                                val pdfY = (change.position.y / boxSize.height) * pdfSize.height
+                                                if (isStart) onDragStartHandle(pageIndex, pdfX, pdfY)
+                                                else onDragStopHandle(pageIndex, pdfX, pdfY)
+                                            }
+                                            dragEvent = awaitPointerEvent()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    state.textSelection.bounds.forEach { rectF ->
+                        val left = (rectF.left / pdfSize!!.width) * size.width
+                        val top = (rectF.top / pdfSize.height) * size.height
+                        val right = (rectF.right / pdfSize.width) * size.width
+                        val bottom = (rectF.bottom / pdfSize.height) * size.height
+                        drawRect(
+                            color = Color(0x4D0000FF), // Primary blue with 30% alpha
+                            topLeft = Offset(left, top),
+                            size = androidx.compose.ui.geometry.Size(right - left, bottom - top)
+                        )
+                    }
+
+                    if (startHandle != null && stopHandle != null) {
+                        val startX = (startHandle.x / pdfSize!!.width) * size.width
+                        val startY = (startHandle.y / pdfSize.height) * size.height
+                        val stopX = (stopHandle.x / pdfSize.width) * size.width
+                        val stopY = (stopHandle.y / pdfSize.height) * size.height
+                        
+                        drawCircle(color = Color.Blue, radius = 6.dp.toPx(), center = Offset(startX, startY))
+                        drawLine(color = Color.Blue, start = Offset(startX, startY), end = Offset(startX, startY - 12.dp.toPx()), strokeWidth = 2.dp.toPx())
+                        
+                        drawCircle(color = Color.Blue, radius = 6.dp.toPx(), center = Offset(stopX, stopY))
+                        drawLine(color = Color.Blue, start = Offset(stopX, stopY), end = Offset(stopX, stopY - 12.dp.toPx()), strokeWidth = 2.dp.toPx())
+                    }
+                }
+            }
         } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -532,4 +702,13 @@ fun ReaderScreenPreview() {
             Text("PDF CONTENT PREVIEW", color = Color.White)
         }
     }
+}
+
+internal fun calculateTargetVelocity(baseVelocity: androidx.compose.ui.unit.Velocity, zoomScale: Float): androidx.compose.ui.unit.Velocity {
+    // Scale velocity by the zoom level to ensure the physical flick feels consistent
+    // regardless of how far the document is zoomed in.
+    return androidx.compose.ui.unit.Velocity(
+        x = baseVelocity.x * zoomScale,
+        y = baseVelocity.y * zoomScale
+    )
 }

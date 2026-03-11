@@ -63,7 +63,8 @@ class ReaderDirectionalTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)

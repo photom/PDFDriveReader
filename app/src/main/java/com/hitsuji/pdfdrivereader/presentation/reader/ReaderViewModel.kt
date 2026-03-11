@@ -31,7 +31,8 @@ class ReaderViewModel @Inject constructor(
     private val getPageImageUseCase: GetPageImageUseCase,
     private val getPageSizeUseCase: GetPageSizeUseCase,
     private val closeDocumentUseCase: CloseDocumentUseCase,
-    private val appConfigRepository: AppConfigurationRepository
+    private val appConfigRepository: AppConfigurationRepository,
+    private val getTextSelectionUseCase: GetTextSelectionUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ReaderState())
@@ -231,6 +232,68 @@ class ReaderViewModel @Inject constructor(
             if (newCurrentPage != _state.value.currentPage) {
                 saveReadingPositionUseCase(documentId, PagePosition(newCurrentPage, _state.value.zoomLevel))
             }
+        }
+    }
+
+    fun clearSelection() {
+        _state.update { it.copy(textSelection = null) }
+    }
+
+    fun selectTextAt(pageIndex: Int, pdfX: Int, pdfY: Int) {
+        val uri = _state.value.document?.id ?: return
+        viewModelScope.launch {
+            try {
+                // To select a block of text near the point, we can pass a small bounding box
+                // or just the exact point if the API handles it well. We pass the exact point.
+                val selection = getTextSelectionUseCase(uri, pageIndex, pdfX, pdfY, pdfX, pdfY)
+                _state.update { it.copy(textSelection = selection) }
+            } catch (e: Exception) {
+                Log.e("PDFDriveReader", "Failed to select text", e)
+            }
+        }
+    }
+
+    fun updateSelectionStart(pageIndex: Int, newStartX: Int, newStartY: Int) {
+        val uri = _state.value.document?.id ?: return
+        val stopHandle = _state.value.textSelection?.stopHandle ?: return
+        viewModelScope.launch {
+            try {
+                val selection = getTextSelectionUseCase(uri, pageIndex, newStartX, newStartY, stopHandle.x.toInt(), stopHandle.y.toInt())
+                if (selection != null) {
+                    _state.update { it.copy(textSelection = selection) }
+                }
+            } catch (e: Exception) {
+                Log.e("PDFDriveReader", "Failed to update start selection", e)
+            }
+        }
+    }
+
+    fun updateSelectionStop(pageIndex: Int, newStopX: Int, newStopY: Int) {
+        val uri = _state.value.document?.id ?: return
+        val startHandle = _state.value.textSelection?.startHandle ?: return
+        viewModelScope.launch {
+            try {
+                val selection = getTextSelectionUseCase(uri, pageIndex, startHandle.x.toInt(), startHandle.y.toInt(), newStopX, newStopY)
+                if (selection != null) {
+                    _state.update { it.copy(textSelection = selection) }
+                }
+            } catch (e: Exception) {
+                Log.e("PDFDriveReader", "Failed to update stop selection", e)
+            }
+        }
+    }
+
+    fun onDocumentTapped(pdfX: Int, pdfY: Int) {
+        val selection = _state.value.textSelection
+        if (selection != null) {
+            val isInside = selection.bounds.any { rect ->
+                pdfX >= rect.left && pdfX <= rect.right && pdfY >= rect.top && pdfY <= rect.bottom
+            }
+            if (!isInside) {
+                clearSelection()
+            }
+        } else {
+            toggleUI()
         }
     }
 

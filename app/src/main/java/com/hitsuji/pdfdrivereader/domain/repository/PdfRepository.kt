@@ -113,4 +113,17 @@ interface PdfRepository {
      * Triggers an asynchronous synchronization with Google Drive.
      */
     suspend fun syncCloud()
+
+    /**
+     * Extracts text from a specific page within given boundary points (Android 15+).
+     * 
+     * @param uri The document identifier.
+     * @param pageIndex The 0-based page index.
+     * @param startX Starting X coordinate in PDF page space.
+     * @param startY Starting Y coordinate in PDF page space.
+     * @param stopX Ending X coordinate in PDF page space.
+     * @param stopY Ending Y coordinate in PDF page space.
+     * @return [com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection] or null if no text found or API < 35.
+     */
+    suspend fun selectText(uri: String, pageIndex: Int, startX: Int, startY: Int, stopX: Int, stopY: Int): com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection?
 }

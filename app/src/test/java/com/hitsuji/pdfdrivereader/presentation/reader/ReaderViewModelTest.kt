@@ -31,6 +31,7 @@ class ReaderViewModelTest {
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
     private val closeDocumentUseCase: CloseDocumentUseCase = mock()
     private val appConfigRepository: AppConfigurationRepository = mock()
+    private val getTextSelectionUseCase: GetTextSelectionUseCase = mock()
     private lateinit var viewModel: ReaderViewModel
 
     private val testDispatcher = StandardTestDispatcher()
@@ -48,16 +49,16 @@ class ReaderViewModelTest {
     @Test
     fun `toggleUI should flip visibility state`() = runTest {
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         assertFalse(viewModel.state.value.isUiVisible)
         
         viewModel.toggleUI()
@@ -83,16 +84,16 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -123,16 +124,16 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -164,16 +165,16 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -198,14 +199,15 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
 
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            getTextSelectionUseCase
         )
         viewModel.loadDocument(uri)
         advanceUntilIdle()
@@ -232,16 +234,16 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -255,16 +257,16 @@ class ReaderViewModelTest {
         whenever(openDocumentUseCase(any())) doAnswer { throw RuntimeException("IO Error") }
         
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -292,16 +294,16 @@ class ReaderViewModelTest {
         whenever(appConfigRepository.saveMode(any())) doAnswer { }
         
         viewModel = ReaderViewModel(
-            openDocumentUseCase, 
-            saveReadingPositionUseCase, 
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
             saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
-        )
-        
+            appConfigRepository,
+            getTextSelectionUseCase
+        )        
         viewModel.loadDocument(uri)
         advanceUntilIdle()
         
@@ -317,5 +319,154 @@ class ReaderViewModelTest {
         assertEquals(1, viewModel.state.value.currentPage)
         
         verify(saveCoverModeUseCase).invoke(eq(uri), eq(false))
+    }
+
+    @Test
+    fun `selectTextAt should update textSelection state when usecase returns data`() = runTest {
+        val uri = "uri1"
+        val openedDoc = com.hitsuji.pdfdrivereader.domain.usecase.OpenedDocument(
+            PdfDocument(uri, "file1.pdf", 5, listOf()),
+            PagePosition(0, 1.0f),
+            ReadingDirection.LTR,
+            true
+        )
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageSizeUseCase(any(), any())) doReturn Pair(100, 100)
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mock()
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+        
+        val selection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Selected Text", emptyList())
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(10), eq(20), eq(10), eq(20))) doReturn selection
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
+            saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository,
+            getTextSelectionUseCase
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        assertNull(viewModel.state.value.textSelection)
+        
+        viewModel.selectTextAt(0, 10, 20)
+        advanceUntilIdle()
+        
+        assertEquals(selection, viewModel.state.value.textSelection)
+        
+        viewModel.clearSelection()
+        advanceUntilIdle()
+        assertNull(viewModel.state.value.textSelection)
+    }
+
+    @Test
+    fun `updateSelectionStart and updateSelectionStop should update state`() = runTest {
+        val uri = "uri1"
+        val openedDoc = com.hitsuji.pdfdrivereader.domain.usecase.OpenedDocument(
+            PdfDocument(uri, "file1.pdf", 5, listOf()),
+            PagePosition(0, 1.0f),
+            ReadingDirection.LTR,
+            true
+        )
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageSizeUseCase(any(), any())) doReturn Pair(100, 100)
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mock()
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+        
+        val initialSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Word", listOf(android.graphics.RectF(10f, 10f, 30f, 20f)))
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(20), eq(15), eq(20), eq(15))) doReturn initialSelection
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
+            saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository,
+            getTextSelectionUseCase
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        viewModel.selectTextAt(0, 20, 15)
+        advanceUntilIdle()
+        assertEquals(initialSelection, viewModel.state.value.textSelection)
+        
+        val newStartSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Start Word", listOf(android.graphics.RectF(5f, 10f, 30f, 20f)))
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(5), eq(15), eq(30), eq(20))) doReturn newStartSelection
+        
+        viewModel.updateSelectionStart(0, 5, 15)
+        advanceUntilIdle()
+        assertEquals(newStartSelection, viewModel.state.value.textSelection)
+        
+        val newStopSelection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Start Word End", listOf(android.graphics.RectF(5f, 10f, 40f, 20f)))
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(5), eq(10), eq(40), eq(15))) doReturn newStopSelection
+        
+        viewModel.updateSelectionStop(0, 40, 15)
+        advanceUntilIdle()
+        assertEquals(newStopSelection, viewModel.state.value.textSelection)
+    }
+
+    @Test
+    fun `onDocumentTapped should clear selection if tapped outside bounds, keep if inside, or toggle UI if no selection`() = runTest {
+        val uri = "uri1"
+        val openedDoc = com.hitsuji.pdfdrivereader.domain.usecase.OpenedDocument(
+            PdfDocument(uri, "file1.pdf", 5, listOf()),
+            PagePosition(0, 1.0f),
+            ReadingDirection.LTR,
+            true
+        )
+        whenever(openDocumentUseCase(any())) doReturn openedDoc
+        whenever(getPageSizeUseCase(any(), any())) doReturn Pair(100, 100)
+        whenever(getPageImageUseCase(any(), any(), any(), any())) doReturn mock()
+        whenever(appConfigRepository.saveLastUri(any())) doAnswer { }
+        whenever(appConfigRepository.saveMode(any())) doAnswer { }
+        
+        val selection = com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection("Word", listOf(android.graphics.RectF(10f, 10f, 30f, 20f)))
+        whenever(getTextSelectionUseCase(eq(uri), eq(0), eq(15), eq(15), eq(15), eq(15))) doReturn selection
+        
+        viewModel = ReaderViewModel(
+            openDocumentUseCase,
+            saveReadingPositionUseCase,
+            saveReadingDirectionUseCase,
+            saveCoverModeUseCase,
+            getPageImageUseCase,
+            getPageSizeUseCase,
+            closeDocumentUseCase,
+            appConfigRepository,
+            getTextSelectionUseCase
+        )
+        
+        viewModel.loadDocument(uri)
+        advanceUntilIdle()
+        
+        assertFalse(viewModel.state.value.isUiVisible)
+        viewModel.onDocumentTapped(5, 5) // No selection yet
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.isUiVisible)
+        
+        viewModel.selectTextAt(0, 15, 15)
+        advanceUntilIdle()
+        assertEquals(selection, viewModel.state.value.textSelection)
+        
+        viewModel.onDocumentTapped(15, 15) // Inside bounds
+        advanceUntilIdle()
+        assertEquals(selection, viewModel.state.value.textSelection)
+        assertTrue(viewModel.state.value.isUiVisible) // Still visible
+        
+        viewModel.onDocumentTapped(5, 5) // Outside bounds
+        advanceUntilIdle()
+        assertNull(viewModel.state.value.textSelection)
     }
 }

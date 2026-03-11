@@ -168,5 +168,19 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] **LTR/RTL**: Verifies that horizontal delta transitions from viewport panning to `LazyList` scrolling when zoomed edges are reached.
 - **Inertia & Physics**
     - [ ] Verification: Verifies that release velocity is used to initialize a decay animation.
+    - [ ] Verification: Verifies that release velocity is proportionally scaled by the zoom level to ensure consistent panning inertia regardless of the zoom scale.
     - [ ] Verification: Verifies that the momentum is distributed between viewport offset and list scroll position based on edge clamping.
     - [ ] Verification: Verifies that the document does not automatically snap or move after the momentum finishes.
+
+### 3.7 Text Selection & Copy (API 35+)
+- **Selection State**
+    - [ ] Verification: Verifies that a long press on the document triggers text selection mode and displays the selection popup.
+    - [ ] Verification: Verifies that the selection is cleared when a user taps outside of the selected range or navigates away.
+    - [ ] Verification: Verifies that the selection remains active when a user taps inside the selected range.
+    - [ ] Verification: Verifies that updating the start or end bounds of a selection triggers a state update with the new extracted text and bounds.
+    - [ ] Verification: Verifies that standard Reader gestures (swiping, panning, zooming) are disabled while a text selection is active.
+- **API Version Compatibility**
+    - [ ] Verification: Verifies that on API < 35, the `selectText` method safely returns `null` or an empty state without causing a crash.
+    - [ ] Verification: Verifies that on API >= 35, the `selectContent` or `getTextContents` methods are appropriately invoked.
+- **Copy Action**
+    - [ ] Verification: Verifies that triggering the "Copy" action correctly sets the system clipboard text and clears the active selection state.

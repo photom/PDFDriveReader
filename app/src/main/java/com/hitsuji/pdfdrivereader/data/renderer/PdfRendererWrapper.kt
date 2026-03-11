@@ -109,4 +109,40 @@ class PdfRendererWrapper {
         activeId = null
         Log.d("PDFDriveReader", "PdfRenderer: Session closed")
     }
+
+    /**
+     * Extracts selected text from a page between two points (Android 15+).
+     *
+     * @return PdfTextSelection or null if API < 35 or no text selected.
+     */
+    fun selectText(pageIndex: Int, startX: Int, startY: Int, stopX: Int, stopY: Int): com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection? {
+        if (android.os.Build.VERSION.SDK_INT < 35) return null
+        
+        val renderer = activeRenderer ?: return null
+        var page: PdfRenderer.Page? = null
+        try {
+            page = renderer.openPage(pageIndex)
+            val start = android.graphics.pdf.models.selection.SelectionBoundary(android.graphics.Point(startX, startY))
+            val stop = android.graphics.pdf.models.selection.SelectionBoundary(android.graphics.Point(stopX, stopY))
+            val selection = page.selectContent(start, stop) ?: return null
+            
+            val contents = selection.selectedTextContents
+            if (contents.isEmpty()) return null
+            
+            val fullText = StringBuilder()
+            val allBounds = mutableListOf<android.graphics.RectF>()
+            
+            contents.forEach { content ->
+                fullText.append(content.text)
+                allBounds.addAll(content.bounds)
+            }
+            
+            return com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(fullText.toString(), allBounds)
+        } catch (e: Exception) {
+            Log.e("PDFDriveReader", "PdfRenderer: Failed to select text on page $pageIndex", e)
+            return null
+        } finally {
+            page?.close()
+        }
+    }
 }

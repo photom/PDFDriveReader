@@ -93,3 +93,15 @@ To ensure the user is never left without feedback during failed operations:
 ## Feedback & Animation
 - **Indeterminate Loading**: All asynchronous operations (Library Sync, Document Download, Page Rendering) must display a **cycling indeterminate progress indicator** to inform the user that the process is active.
 - **Centering**: Loading indicators must be centered within their respective viewports (Library list or Reader canvas) to maintain visual balance and prevent clipping.
+
+## Text Selection & Copy Interaction
+- **Trigger Gesture**: A **long press** on the document surface initiates text selection.
+- **Visual Feedback**:
+  - The currently selected text block must be highlighted with a semi-transparent color (e.g., primary color with 30% alpha).
+  - Drag handles (e.g., circular indicators with stems) must be displayed at the start and end positions of the highlighted text, indicating that the selection range can be adjusted.
+  - A contextual popup or a floating toolbar must appear containing a "Copy" action button.
+- **Adjusting Selection**: The user can touch and drag the start or end handles to modify the selection range. The text highlighting and contextual popup must update as the selection changes.
+- **Gesture Suppression**: While text selection mode is active, normal reader gestures (panning, swiping, flicking, zooming, and pagination) are temporarily disabled to prevent conflicting with the selection adjustments.
+- **Action**: Tapping "Copy" copies the extracted text to the device clipboard and clears the selection highlighting.
+- **Dismissal**: Tapping anywhere outside the highlighted selection range (on the unselected text, margins, or background) dismisses the text selection mode. Tapping inside the highlighted selection range does not dismiss the mode.
+- **Compatibility Note**: On Android devices running OS versions lower than Android 15 (API < 35), the long press gesture should be silently ignored as the text extraction API is unavailable.

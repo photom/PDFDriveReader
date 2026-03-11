@@ -162,4 +162,15 @@ class RoomPdfRepository @Inject constructor(
             dao.upsertMetadata(documentMapper.toEntity(doc))
         }
     }
+
+    override suspend fun selectText(
+        uri: String,
+        pageIndex: Int,
+        startX: Int,
+        startY: Int,
+        stopX: Int,
+        stopY: Int
+    ): com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection? = withContext(Dispatchers.Default) {
+        renderer.selectText(pageIndex, startX, startY, stopX, stopY)
+    }
 }

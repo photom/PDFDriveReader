@@ -66,7 +66,8 @@ class ReaderContinuousModeTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)
@@ -100,7 +101,8 @@ class ReaderContinuousModeTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)
@@ -135,7 +137,8 @@ class ReaderContinuousModeTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)
@@ -171,7 +174,8 @@ class ReaderContinuousModeTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)
@@ -206,7 +210,8 @@ class ReaderContinuousModeTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)

@@ -63,7 +63,8 @@ class ReaderSeamlessInteractionTest {
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
-            appConfigRepository
+            appConfigRepository,
+            mock()
         )
 
         viewModel.loadDocument(uri)
