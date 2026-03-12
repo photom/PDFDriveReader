@@ -10,7 +10,13 @@ The entry point of the application, used for browsing and selecting PDFs.
   - **App Title**: Left-aligned.
   - **Search Icon**: Reveals a filter bar that searches within the **currently active tab** (Local or Cloud).
   - **Syncing Icon**: Shown only during active background sync.
-- **Sorting**: By default, lists are sorted alphabetically by **Location Path** (folder), and then by **File Name**.
+- **Sorting**: By default, directories are sorted alphabetically. Within a directory, documents are sorted alphabetically by **File Name**.
+- **List Structure (Directory Tree)**:
+  - Documents are grouped by their **Location Path** (directory).
+  - Initially, only the directories are shown (collapsed state).
+  - Each directory displays a closed folder icon.
+  - Tapping a directory expands it to reveal the documents inside, changing the icon to an open folder.
+  - The tree acts as an accordion: expanding one directory automatically collapses any previously expanded directory, ensuring only one directory's contents are visible at a time.
 - **List Item Details**:
   - **File Name**: Primary title of the document.
   - **Location Path**: 

@@ -71,12 +71,15 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ## 3. Presentation Layer Modules (`ui/`)
 
 ### 3.1 LibraryViewModel
+- **States**
+    - [ ] Directory State: Verifies the `expandedDirectory` state tracks the currently open accordion node.
 - **Actions**
     - [ ] `onRefresh`: Triggers the `SyncLocalLibrary` use case for all stored SAF directories.
     - [ ] `onFolderPicked`: Verifies that adding a new SAF directory triggers an immediate scan.
     - [ ] `onFilesPicked`: Verifies that picking multiple PDF files via SAF correctly adds them to the database.
     - [ ] `onSearchQueryChanged`: Updates the filtered list in real-time.
-    - [ ] `onTabSelected`: Switches the view between Local and Cloud sources.
+    - [ ] `onTabSelected`: Switches the view between Local and Cloud sources and clears `expandedDirectory`.
+    - [ ] `onDirectoryTapped`: Toggles the `expandedDirectory`. Closes if already open, opens if different.
 
 ### 3.2 ReaderViewModel
 - **UI State (Immersive)**

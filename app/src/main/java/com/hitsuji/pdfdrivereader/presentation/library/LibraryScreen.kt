@@ -40,7 +40,8 @@ fun LibraryScreen(
     val state by viewModel.state.collectAsState()
     val isAuthenticated by viewModel.isGoogleAuthenticated.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(1) }
+    val selectedTab by viewModel.selectedTab.collectAsState()
+    val expandedDirectory by viewModel.expandedDirectory.collectAsState()
     val tabs = listOf("Local Storage", "Google Drive")
 
     // Rotation animation for sync icon
@@ -185,7 +186,7 @@ fun LibraryScreen(
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = { viewModel.onTabSelected(index) },
                         text = { Text(title) }
                     )
                 }
@@ -204,7 +205,9 @@ fun LibraryScreen(
                     LibraryContent(
                         state = state,
                         selectedTab = selectedTab,
-                        onDocumentClick = onDocumentClick
+                        expandedDirectory = expandedDirectory,
+                        onDocumentClick = onDocumentClick,
+                        onDirectoryTapped = viewModel::onDirectoryTapped
                     )
                 }
             }
@@ -231,7 +234,9 @@ fun DriveAuthWall(onSignInClick: () -> Unit) {
 fun LibraryContent(
     state: LibraryState,
     selectedTab: Int,
-    onDocumentClick: (String) -> Unit
+    expandedDirectory: String?,
+    onDocumentClick: (String) -> Unit,
+    onDirectoryTapped: (String) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when (state) {
@@ -260,7 +265,9 @@ fun LibraryContent(
                 } else {
                     DocumentList(
                         documents = filteredDocs,
-                        onDocumentClick = onDocumentClick
+                        expandedDirectory = expandedDirectory,
+                        onDocumentClick = onDocumentClick,
+                        onDirectoryTapped = onDirectoryTapped
                     )
                 }
             }
@@ -278,13 +285,71 @@ fun LibraryContent(
 @Composable
 fun DocumentList(
     documents: List<DocumentMetadata>,
-    onDocumentClick: (String) -> Unit
+    expandedDirectory: String?,
+    onDocumentClick: (String) -> Unit,
+    onDirectoryTapped: (String) -> Unit
 ) {
+    val groupedDocs = remember(documents) {
+        documents.groupBy { it.locationPath }
+            .toSortedMap()
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(documents) { doc ->
-            DocumentItem(doc, onDocumentClick)
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        groupedDocs.forEach { (directory, docs) ->
+            item(key = "dir_$directory") {
+                FolderItem(
+                    directoryName = directory,
+                    isExpanded = expandedDirectory == directory,
+                    onClick = { onDirectoryTapped(directory) }
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+            
+            if (expandedDirectory == directory) {
+                items(
+                    items = docs.sortedBy { it.fileName },
+                    key = { it.id }
+                ) { doc ->
+                    DocumentItem(doc, onDocumentClick)
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 32.dp))
+                }
+            }
         }
+    }
+}
+
+@Composable
+fun FolderItem(
+    directoryName: String,
+    isExpanded: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.FolderOpen else Icons.Default.Folder,
+            contentDescription = if (isExpanded) "Collapse Directory" else "Expand Directory",
+            modifier = Modifier.size(32.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = directoryName.ifEmpty { "Root" },
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -353,7 +418,12 @@ fun LibraryScreenPreview() {
                     Tab(selected = true, onClick = {}, text = { Text("Local Storage") })
                     Tab(selected = false, onClick = {}, text = { Text("Google Drive") })
                 }
-                DocumentList(documents = docs, onDocumentClick = {})
+                DocumentList(
+                    documents = docs, 
+                    expandedDirectory = "/Documents",
+                    onDocumentClick = {},
+                    onDirectoryTapped = {}
+                )
             }
         }
     }
