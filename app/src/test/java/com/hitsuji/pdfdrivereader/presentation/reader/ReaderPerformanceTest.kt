@@ -26,7 +26,6 @@ class ReaderPerformanceTest {
     private val openDocumentUseCase: OpenDocumentUseCase = mock()
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase = mock()
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase = mock()
-    private val saveCoverModeUseCase: SaveCoverModeUseCase = mock()
     private val getPageImageUseCase: GetPageImageUseCase = mock()
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
     private val closeDocumentUseCase: CloseDocumentUseCase = mock()
@@ -49,7 +48,7 @@ class ReaderPerformanceTest {
     fun `rapid zoom changes should be debounced`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 100)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(10, 1.0f), ReadingDirection.LTR, true)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(10, 1.0f), ReadingDirection.LTR)
         val mockBitmap: Bitmap = mock()
 
         whenever(openDocumentUseCase(any())) doReturn openedDoc
@@ -60,7 +59,6 @@ class ReaderPerformanceTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
-            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,
@@ -95,7 +93,7 @@ class ReaderPerformanceTest {
     fun `refresh should prioritize current page`() = runTest {
         val uri = "test_uri"
         val mockDoc = PdfDocument(uri, "test.pdf", 100)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(10, 1.0f), ReadingDirection.LTR, true)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(10, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageSizeUseCase(any(), any())) doReturn (1000 to 1000)
@@ -110,7 +108,6 @@ class ReaderPerformanceTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
-            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,

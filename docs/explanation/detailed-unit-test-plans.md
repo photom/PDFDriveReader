@@ -14,10 +14,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] `id` is properly assigned and immutable.
     - [ ] `close()` correctly triggers the release of underlying resources.
     - [ ] **Pre-loading**: `pageSizes` list accurately reflects the size of all pages when initialized.
-    - [ ] **Cover Detection**: Marks the first and/or last page as covers if their dimensions differ from the majority of pages.
 - **`ReadingSettings` (Value Object)**
-    - [ ] Equality: Two settings with the same direction/zoom/coverMode are equal.
-    - [ ] Default: Initialized with LTR, 100% zoom, and coverMode enabled.
+    - [ ] Equality: Two settings with the same direction/zoom are equal.
+    - [ ] Default: Initialized with LTR and 100% zoom.
 - **`PagePosition` (Value Object)**
     - [ ] Validation: Page index cannot be negative.
     - [ ] Validation: Zoom level must be between 1.0 and 5.0.
@@ -96,7 +95,6 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Navigation & Paging**
     - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
     - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.
-    - [ ] `onCoverModeChanged`: Updates the `coverMode` flag, triggers persistence update, and correctly recalculates the visible pages list to skip covers when w/o cover mode is active.
     - [ ] UI Verification: Verifies that the slider row displays both the current page and max page labels.
     - [ ] Theme Support: Verifies that text labels use `onSurface` color for visibility in Dark Mode.
 

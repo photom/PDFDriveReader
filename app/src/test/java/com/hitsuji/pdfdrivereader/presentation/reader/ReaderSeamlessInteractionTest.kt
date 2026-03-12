@@ -26,7 +26,6 @@ class ReaderSeamlessInteractionTest {
     private val openDocumentUseCase: OpenDocumentUseCase = mock()
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase = mock()
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase = mock()
-    private val saveCoverModeUseCase: SaveCoverModeUseCase = mock()
     private val getPageImageUseCase: GetPageImageUseCase = mock()
     private val getPageSizeUseCase: GetPageSizeUseCase = mock()
     private val closeDocumentUseCase: CloseDocumentUseCase = mock()
@@ -49,7 +48,7 @@ class ReaderSeamlessInteractionTest {
     fun `viewport zoom should affect all pages in state`() = runTest {
         val uri = "seamless_test"
         val mockDoc = PdfDocument(uri, "seamless.pdf", 10)
-        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR, true)
+        val openedDoc = OpenedDocument(mockDoc, PagePosition(0, 1.0f), ReadingDirection.LTR)
         
         whenever(openDocumentUseCase(any())) doReturn openedDoc
         whenever(getPageSizeUseCase(any(), any())) doReturn (1000 to 1000)
@@ -59,7 +58,6 @@ class ReaderSeamlessInteractionTest {
             openDocumentUseCase,
             saveReadingPositionUseCase,
             saveReadingDirectionUseCase,
-            saveCoverModeUseCase,
             getPageImageUseCase,
             getPageSizeUseCase,
             closeDocumentUseCase,

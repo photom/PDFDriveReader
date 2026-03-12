@@ -402,13 +402,6 @@ fun ReaderScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text(if (state.isCoverModeEnabled) "Hide Cover Pages" else "Show Cover Pages") },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.onCoverModeChanged(!state.isCoverModeEnabled)
-                                }
-                            )
-                            DropdownMenuItem(
                                 text = { Text("Reading Direction") },
                                 onClick = {
                                     showMenu = false

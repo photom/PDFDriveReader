@@ -57,28 +57,4 @@ class PdfDocumentTest {
         assertEquals(2, doc.pageSizes.size)
         assertEquals(100, doc.pageSizes[0].width)
     }
-
-    @Test
-    fun `cover detection should correctly identify different first and last pages`() {
-        val sizes = listOf(
-            PageDimension(150, 150), // Cover
-            PageDimension(100, 100),
-            PageDimension(100, 100),
-            PageDimension(100, 100),
-            PageDimension(150, 150)  // Cover
-        )
-        val doc = PdfDocument(id = "uri1", fileName = "doc.pdf", totalPageCount = 5, pageSizes = sizes)
-        assertEquals(setOf(0, 4), doc.coverPages)
-    }
-
-    @Test
-    fun `cover detection should not identify covers if all pages are same size`() {
-        val sizes = listOf(
-            PageDimension(100, 100),
-            PageDimension(100, 100),
-            PageDimension(100, 100)
-        )
-        val doc = PdfDocument(id = "uri1", fileName = "doc.pdf", totalPageCount = 3, pageSizes = sizes)
-        assertEquals(emptySet<Int>(), doc.coverPages)
-    }
 }
