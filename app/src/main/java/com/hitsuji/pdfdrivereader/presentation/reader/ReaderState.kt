@@ -15,7 +15,6 @@ data class ReaderState(
     val pageCache: Map<Int, Bitmap> = emptyMap(),
     val zoomLevel: Float = 1.0f,
     val direction: ReadingDirection = ReadingDirection.LTR,
-    val isCoverModeEnabled: Boolean = true,
     val visiblePages: List<Int> = emptyList(), // The list of actual page indices to display
     val textSelection: com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection? = null,
     val errorMessage: String? = null

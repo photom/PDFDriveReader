@@ -10,7 +10,13 @@ The entry point of the application, used for browsing and selecting PDFs.
   - **App Title**: Left-aligned.
   - **Search Icon**: Reveals a filter bar that searches within the **currently active tab** (Local or Cloud).
   - **Syncing Icon**: Shown only during active background sync.
-- **Sorting**: By default, lists are sorted alphabetically by **Location Path** (folder), and then by **File Name**.
+- **Sorting**: By default, directories are sorted alphabetically. Within a directory, documents are sorted alphabetically by **File Name**.
+- **List Structure (Directory Tree)**:
+  - Documents are grouped by their **Location Path** (directory).
+  - Initially, only the directories are shown (collapsed state).
+  - Each directory displays a closed folder icon.
+  - Tapping a directory expands it to reveal the documents inside, changing the icon to an open folder.
+  - The tree acts as an accordion: expanding one directory automatically collapses any previously expanded directory, ensuring only one directory's contents are visible at a time.
 - **List Item Details**:
   - **File Name**: Primary title of the document.
   - **Location Path**: 
@@ -24,13 +30,12 @@ A distraction-free environment for document consumption.
 - **Top Bar**: Hidden by default (Immersive View). When visible, the title must display the **File Name** of the currently opened document.
 - **Immersive View**: UI hidden by default.
 - **Scroll Physics**:
-  - **LTR / RTL**: **Paginated** (snaps to page boundaries) to simulate a physical book.
-  - **TTB**: **Continuous** scrolling for a vertical document flow.
+  - **LTR / RTL / TTB**: **Continuous** scrolling for a fluid document flow. No forced pagination or snapping.
 - **Rendering Proportions**:
   - **Aspect Ratio**: The app must preserve the original width-to-height ratio of each page.
   - **Best Fit**: Pages must be scaled to fit the display width or height, whichever is reached first, without stretching or distortion.
 - **Page Indicators**: Displayed as "Page [Current] of [Total]" using **1-indexed** numbering (e.g., Page 1 of 50).
-- **Menu Interaction**: Includes options to change reading direction and toggle "w/o cover mode".
+- **Menu Interaction**: Includes options to change reading direction.
 - **Back Navigation**: 
   - If **Link History exists**: System Back returns to the previous position.
   - If **Link History is empty** and **UI is visible**: System Back hides the UI overlay.
@@ -46,6 +51,7 @@ A distraction-free environment for document consumption.
 | Page Slider | **Dragging**: Updates the page number indicator in real-time for immediate feedback. |
 | Page Slider | **Release**: Triggers the actual page jump and document rendering upon finger release to prevent hanging. |
 | Zoom | Pinch gestures in Reader Mode (100% - 500%). |
+| Zoom Pan | During active zoom (> 100%), swiping/panning must translate the document exactly 1:1 with the finger movement (no coordinate drift). |
 | Zoom Reset | Double-tap in Reader Mode to 100%. |
 | Navigation History | Link jumps save the previous position; swipe back to return. |
 
@@ -69,7 +75,6 @@ A distraction-free environment for document consumption.
   - **Reading Direction**: (L-to-R, R-to-L, or T-to-B).
   - **Last Page**: The exact page index.
   - **Zoom Level**: The user's last used zoom percentage (e.g., 150%).
-  - **Cover Mode**: Tracks whether "w/o cover mode" is enabled or not.
 - **Navigation History**: Link backstack is persisted across backgrounding but cleared when a different document is opened.
 - **Last File**: Automatically opens the previously viewed PDF if Reader Mode is the active mode on launch.
 - **Cache**: Stores active mode, file metadata (via `file_uri`), and settings in an SQLite database.

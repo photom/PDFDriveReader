@@ -137,7 +137,13 @@ class PdfRendererWrapper {
                 allBounds.addAll(content.bounds)
             }
             
-            return com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(fullText.toString(), allBounds)
+            return com.hitsuji.pdfdrivereader.domain.model.PdfTextSelection(
+                pageIndex, 
+                fullText.toString(), 
+                allBounds,
+                android.graphics.PointF(startX.toFloat(), startY.toFloat()),
+                android.graphics.PointF(stopX.toFloat(), stopY.toFloat())
+            )
         } catch (e: Exception) {
             Log.e("PDFDriveReader", "PdfRenderer: Failed to select text on page $pageIndex", e)
             return null

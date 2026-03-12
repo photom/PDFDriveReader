@@ -11,6 +11,7 @@ import com.hitsuji.pdfdrivereader.domain.repository.AppConfigurationRepository
 import com.hitsuji.pdfdrivereader.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -27,7 +28,6 @@ class ReaderViewModel @Inject constructor(
     private val openDocumentUseCase: OpenDocumentUseCase,
     private val saveReadingPositionUseCase: SaveReadingPositionUseCase,
     private val saveReadingDirectionUseCase: SaveReadingDirectionUseCase,
-    private val saveCoverModeUseCase: SaveCoverModeUseCase,
     private val getPageImageUseCase: GetPageImageUseCase,
     private val getPageSizeUseCase: GetPageSizeUseCase,
     private val closeDocumentUseCase: CloseDocumentUseCase,
@@ -43,6 +43,7 @@ class ReaderViewModel @Inject constructor(
     
     private var screenWidth: Int = 1080
     private var screenHeight: Int = 1920
+    private var selectionJob: Job? = null
 
     fun updateScreenDimensions(width: Int, height: Int) {
         screenWidth = width
@@ -55,20 +56,10 @@ class ReaderViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, errorMessage = null, pageCache = emptyMap()) }
             try {
                 val openedDoc = openDocumentUseCase(uri)
-                val isCoverModeEnabled = openedDoc.isCoverModeEnabled
                 val totalPages = openedDoc.document.totalPageCount
-                val coverPages = openedDoc.document.coverPages
                 
-                val visiblePages = if (isCoverModeEnabled) {
-                    (0 until totalPages).toList()
-                } else {
-                    (0 until totalPages).filter { it !in coverPages }
-                }
-                
-                var startIndex = openedDoc.position.pageIndex
-                if (!isCoverModeEnabled && startIndex in coverPages) {
-                    startIndex = visiblePages.firstOrNull { it > startIndex } ?: visiblePages.lastOrNull() ?: 0
-                }
+                val visiblePages = (0 until totalPages).toList()
+                val startIndex = openedDoc.position.pageIndex
 
                 _state.update { 
                     it.copy(
@@ -76,7 +67,6 @@ class ReaderViewModel @Inject constructor(
                         currentPage = startIndex,
                         zoomLevel = openedDoc.position.zoomLevel,
                         direction = openedDoc.direction,
-                        isCoverModeEnabled = isCoverModeEnabled,
                         visiblePages = visiblePages
                     )
                 }
@@ -202,39 +192,6 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun onCoverModeChanged(enabled: Boolean) {
-        val document = _state.value.document ?: return
-        val documentId = document.id
-        if (enabled == _state.value.isCoverModeEnabled) return
-        
-        val newVisiblePages = if (enabled) {
-            (0 until document.totalPageCount).toList()
-        } else {
-            (0 until document.totalPageCount).filter { it !in document.coverPages }
-        }
-        
-        var newCurrentPage = _state.value.currentPage
-        if (!enabled && newCurrentPage in document.coverPages) {
-            newCurrentPage = newVisiblePages.firstOrNull { it > newCurrentPage } ?: newVisiblePages.lastOrNull() ?: 0
-        }
-        
-        _state.update { 
-            it.copy(
-                isCoverModeEnabled = enabled, 
-                visiblePages = newVisiblePages,
-                currentPage = newCurrentPage
-            ) 
-        }
-        performRefreshCache()
-        
-        viewModelScope.launch {
-            saveCoverModeUseCase(documentId, enabled)
-            if (newCurrentPage != _state.value.currentPage) {
-                saveReadingPositionUseCase(documentId, PagePosition(newCurrentPage, _state.value.zoomLevel))
-            }
-        }
-    }
-
     fun clearSelection() {
         _state.update { it.copy(textSelection = null) }
     }
@@ -256,14 +213,18 @@ class ReaderViewModel @Inject constructor(
     fun updateSelectionStart(pageIndex: Int, newStartX: Int, newStartY: Int) {
         val uri = _state.value.document?.id ?: return
         val stopHandle = _state.value.textSelection?.stopHandle ?: return
-        viewModelScope.launch {
+        selectionJob?.cancel()
+        selectionJob = viewModelScope.launch {
+            delay(30) // Debounce rapid drag events
             try {
                 val selection = getTextSelectionUseCase(uri, pageIndex, newStartX, newStartY, stopHandle.x.toInt(), stopHandle.y.toInt())
-                if (selection != null) {
+                if (selection != null && isActive) {
                     _state.update { it.copy(textSelection = selection) }
                 }
             } catch (e: Exception) {
-                Log.e("PDFDriveReader", "Failed to update start selection", e)
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e("PDFDriveReader", "Failed to update start selection", e)
+                }
             }
         }
     }
@@ -271,14 +232,18 @@ class ReaderViewModel @Inject constructor(
     fun updateSelectionStop(pageIndex: Int, newStopX: Int, newStopY: Int) {
         val uri = _state.value.document?.id ?: return
         val startHandle = _state.value.textSelection?.startHandle ?: return
-        viewModelScope.launch {
+        selectionJob?.cancel()
+        selectionJob = viewModelScope.launch {
+            delay(30) // Debounce rapid drag events
             try {
                 val selection = getTextSelectionUseCase(uri, pageIndex, startHandle.x.toInt(), startHandle.y.toInt(), newStopX, newStopY)
-                if (selection != null) {
+                if (selection != null && isActive) {
                     _state.update { it.copy(textSelection = selection) }
                 }
             } catch (e: Exception) {
-                Log.e("PDFDriveReader", "Failed to update stop selection", e)
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e("PDFDriveReader", "Failed to update stop selection", e)
+                }
             }
         }
     }

@@ -4,12 +4,15 @@ import android.graphics.PointF
 import android.graphics.RectF
 
 data class PdfTextSelection(
+    val pageIndex: Int,
     val text: String,
-    val bounds: List<RectF>
+    val bounds: List<RectF>,
+    val selectionStart: PointF, // The raw user-initiated start point
+    val selectionStop: PointF   // The raw user-initiated stop point
 ) {
-    val startHandle: PointF?
-        get() = bounds.firstOrNull()?.let { PointF(it.left, it.top) } // Top-left of the first rect as start handle base
+    val startHandle: PointF
+        get() = selectionStart
 
-    val stopHandle: PointF?
-        get() = bounds.lastOrNull()?.let { PointF(it.right, it.bottom) } // Bottom-right of the last rect as stop handle base
+    val stopHandle: PointF
+        get() = selectionStop
 }

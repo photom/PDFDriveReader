@@ -229,4 +229,61 @@ class LibraryViewModelTest {
 
         org.mockito.kotlin.verify(addLocalPdfsUseCase).invoke(org.mockito.kotlin.eq(uris))
     }
+
+    @Test
+    fun `onDirectoryTapped should toggle the expanded directory state`() = runTest {
+        whenever(getDocumentsUseCase()) doReturn flowOf(emptyList())
+        whenever(syncLocalLibraryUseCase()) doReturn DomainResult.Success(Unit)
+
+        viewModel = LibraryViewModel(
+            getDocumentsUseCase,
+            syncLocalLibraryUseCase,
+            syncCloudLibraryUseCase,
+            searchLibraryUseCase,
+            addLocalPdfsUseCase,
+            driveService,
+            appConfigRepository
+        )
+        advanceUntilIdle()
+
+        org.junit.Assert.assertNull(viewModel.expandedDirectory.value)
+
+        // Open directory
+        viewModel.onDirectoryTapped("FolderA")
+        assertEquals("FolderA", viewModel.expandedDirectory.value)
+
+        // Open another directory, should close previous and open new one
+        viewModel.onDirectoryTapped("FolderB")
+        assertEquals("FolderB", viewModel.expandedDirectory.value)
+
+        // Tap same directory, should close it
+        viewModel.onDirectoryTapped("FolderB")
+        org.junit.Assert.assertNull(viewModel.expandedDirectory.value)
+    }
+
+    @Test
+    fun `onTabSelected should reset the expanded directory state`() = runTest {
+        whenever(getDocumentsUseCase()) doReturn flowOf(emptyList())
+        whenever(syncLocalLibraryUseCase()) doReturn DomainResult.Success(Unit)
+
+        viewModel = LibraryViewModel(
+            getDocumentsUseCase,
+            syncLocalLibraryUseCase,
+            syncCloudLibraryUseCase,
+            searchLibraryUseCase,
+            addLocalPdfsUseCase,
+            driveService,
+            appConfigRepository
+        )
+        advanceUntilIdle()
+
+        viewModel.onDirectoryTapped("FolderA")
+        assertEquals("FolderA", viewModel.expandedDirectory.value)
+
+        // Switch tab
+        viewModel.onTabSelected(0)
+        
+        org.junit.Assert.assertNull(viewModel.expandedDirectory.value)
+        assertEquals(0, viewModel.selectedTab.value)
+    }
 }

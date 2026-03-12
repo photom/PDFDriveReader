@@ -12,8 +12,7 @@ import javax.inject.Inject
 data class OpenedDocument(
     val document: PdfDocument,
     val position: PagePosition,
-    val direction: ReadingDirection,
-    val isCoverModeEnabled: Boolean
+    val direction: ReadingDirection
 )
 
 /**
@@ -34,8 +33,7 @@ class OpenDocumentUseCase @Inject constructor(
         val document = repository.getDocument(uri)
         val position = repository.getSavedPosition(uri) ?: PagePosition(0, 1.0f)
         val direction = repository.getSavedDirection(uri) ?: ReadingDirection.LTR
-        val coverMode = repository.getSavedCoverMode(uri) ?: true
         
-        return OpenedDocument(document, position, direction, coverMode)
+        return OpenedDocument(document, position, direction)
     }
 }

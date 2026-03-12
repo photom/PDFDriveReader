@@ -61,22 +61,6 @@ interface PdfRepository {
     suspend fun getSavedDirection(uri: String): ReadingDirection?
 
     /**
-     * Persists the cover mode preference for a specific document.
-     * 
-     * @param uri The document identifier.
-     * @param isCoverModeEnabled Whether cover mode is enabled.
-     */
-    suspend fun saveCoverMode(uri: String, isCoverModeEnabled: Boolean)
-
-    /**
-     * Retrieves the saved cover mode preference for a specific document.
-     * 
-     * @param uri The document identifier.
-     * @return The saved cover mode flag, or null if never configured.
-     */
-    suspend fun getSavedCoverMode(uri: String): Boolean?
-
-    /**
      * Retrieves the original size of a specific page.
      * 
      * @return Pair of (Width, Height).
