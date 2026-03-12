@@ -60,15 +60,7 @@ To prevent memory leaks and file handle exhaustion:
   - A new document is opened, replacing the current one.
 - **Safety**: Use `try-finally` blocks or Kotlin's `.use {}` extension to ensure `close()` is called even if rendering fails.
 
-### Cover Detection & View Mode
-Some PDFs contain covers (first and/or last page) that differ in physical dimensions from the rest of the document's pages.
-- **Cover Detection Logic**: Upon initialization, the app must load the dimensions of every page. If the first page and/or the last page has a different size compared to the majority (the rest) of the pages, they are marked as covers.
-- **View Modes**: 
-  - **w/o cover mode**: The reader skips rendering the cover pages and only displays the non-cover pages.
-  - **w/ cover mode**: The reader displays all pages in the document.
-- **Toggle Mechanism**: A toggle menu in the Reader UI allows the user to switch between these modes dynamically.
-
-### Cloud File Materialization (Downloading)
+### Reading State Persistence
 Since `PdfRenderer` requires local file access, documents from Google Drive must be "materialized" before viewing:
 - **Download Cache**: Cloud files must be downloaded to the app's internal `cacheDir/cloud_docs/` directory.
 - **On-Demand Loading**: Downloading should be triggered when the user selects a cloud document in the Library.
@@ -83,11 +75,10 @@ To ensure a smooth swiping experience and optimal resource usage:
 - **Job Cancellation**: If a user swiping causes multiple page changes in rapid succession, any active background caching job must be explicitly cancelled before starting a new one.
 - **Exception Safety**: The system must distinguish between fatal rendering errors and expected job cancellations during navigation.
 
-### High-Zoom Rendering (Tiling Strategy)
+### High-Zoom Rendering
 To support 100%-500% zoom without `OutOfMemory` errors:
-- **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution.
-- **Tiling**: For zoom levels > 200%, the renderer must split the page into **tiles** (e.g., 512x512px) and only render the tiles currently visible in the viewport.
-- **Bitmap Pooling**: Reuse `Bitmap` objects using a `BitmapPool` to reduce Garbage Collection (GC) pressure.
+- **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution to ensure text remains crisp.
+- **Memory Management**: The `ReaderViewModel` must strictly limit the sliding cache window to free up old, massive zoom bitmaps, relying on Android's native Garbage Collection to reclaim memory when the user pans away.
 
 ### Thumbnail Generation
 For the Library Mode UI:
@@ -131,4 +122,4 @@ To facilitate troubleshooting and robust state management:
 - **Availability**: The application must support text selection and copying natively using `PdfRenderer.Page.selectContent()` or `getTextContents()` on Android 15 (API 35) and above.
 - **Graceful Degradation**: On devices running Android 14 or lower (API < 35), text selection features should be safely disabled or gracefully fallback without crashing, since the `PdfRenderer` APIs for text extraction are not available.
 - **Behavior**: Long-pressing on text should trigger a selection mode. Visual drag handles must appear at the start and end of the selection, allowing the user to drag to adjust the selection boundaries dynamically. A context menu with a "Copy" action must be presented upon successful selection. During this mode, primary reader gestures (panning, pagination, zooming) must be disabled.
-- **State Management**: The current text selection bounds (including the exact start and stop coordinates) and extracted text must be managed by the Reader state. Dragging a handle updates the coordinates and triggers a re-selection. Switching pages, closing the document, or tapping outside the currently selected bounds should clear the active selection. Tapping inside the selected bounds should keep the selection active.
+- **State Management**: The current text selection bounds (including the exact start and stop coordinates) and extracted text must be managed by the Reader state. Dragging a handle updates the coordinates and triggers a re-selection. During a drag, the stationary handle must remain strictly at its user-initiated coordinate to prevent drifting caused by native text snapping. Rapid updates via dragging must be debounced/conflated to prevent hanging the native `PdfRenderer` thread queue. Switching pages, closing the document, or tapping outside the currently selected bounds should clear the active selection. Tapping inside the selected bounds should keep the selection active.

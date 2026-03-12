@@ -34,7 +34,7 @@ import com.hitsuji.pdfdrivereader.presentation.theme.PdfDriveReaderTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ReaderScreen(
     viewModel: ReaderViewModel,
@@ -60,8 +60,9 @@ fun ReaderScreen(
         }
 
         val scaleAnim = remember { Animatable(state.zoomLevel) }
-        val offsetXAnim = remember { Animatable(0f) }
-        val offsetYAnim = remember { Animatable(0f) }
+        var offsetX by remember { mutableFloatStateOf(0f) }
+        var offsetY by remember { mutableFloatStateOf(0f) }
+        var decayJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
         val coroutineScope = rememberCoroutineScope()
 
         LaunchedEffect(state.zoomLevel) {
@@ -97,143 +98,27 @@ fun ReaderScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(state.direction, state.textSelection != null) {
-                    if (state.textSelection != null) return@pointerInput
-                    coroutineScope {
-                        awaitEachGesture {
-                            val velocityTracker = VelocityTracker()
-                            var isPinching = false
-                            
-                            awaitFirstDown(requireUnconsumed = false)
-                            launch { 
-                                offsetXAnim.stop()
-                                offsetYAnim.stop()
-                            }
-
-                            do {
-                                val event = awaitPointerEvent()
-                                val canceled = event.changes.any { it.isConsumed }
-                                if (!canceled) {
-                                    val zoomChange = event.calculateZoom()
-                                    val panChange = event.calculatePan()
-                                    val centroid = event.calculateCentroid(useCurrent = false)
-
-                                    if (zoomChange != 1f || panChange != Offset.Zero) {
-                                        if (zoomChange != 1f) isPinching = true
-                                        val oldScale = scaleAnim.value
-                                        val newScale = (oldScale * zoomChange).coerceIn(1f, 5f)
-                                        launch { scaleAnim.snapTo(newScale) }
-
-                                        val extraWidth = (newScale - 1) * size.width
-                                        val extraHeight = (newScale - 1) * size.height
-                                        val maxX = extraWidth / 2f
-                                        val maxY = extraHeight / 2f
-                                        val isHorizontalMain = state.direction != ReadingDirection.TTB
-
-                                        if (centroid != Offset.Unspecified) {
-                                            val targetOffsetX = centroid.x - (centroid.x - offsetXAnim.value - panChange.x * oldScale) * (newScale / oldScale)
-                                            val targetOffsetY = centroid.y - (centroid.y - offsetYAnim.value - panChange.y * oldScale) * (newScale / oldScale)
-                                            val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
-                                            val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
-                                            val spillX = targetOffsetX - clampedX
-                                            val spillY = targetOffsetY - clampedY
-
-                                            launch {
-                                                offsetXAnim.snapTo(clampedX)
-                                                offsetYAnim.snapTo(clampedY)
-                                                if (isHorizontalMain) {
-                                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
-                                                    listState.scrollBy(scrollAmount)
-                                                } else {
-                                                    listState.scrollBy(-spillY)
-                                                }
-                                            }
-                                        } else {
-                                            val targetOffsetX = offsetXAnim.value + panChange.x * oldScale
-                                            val targetOffsetY = offsetYAnim.value + panChange.y * oldScale
-                                            val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
-                                            val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
-                                            val spillX = targetOffsetX - clampedX
-                                            val spillY = targetOffsetY - clampedY
-
-                                            launch {
-                                                offsetXAnim.snapTo(clampedX)
-                                                offsetYAnim.snapTo(clampedY)
-                                                if (isHorizontalMain) {
-                                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
-                                                    listState.scrollBy(scrollAmount)
-                                                } else {
-                                                    listState.scrollBy(-spillY)
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (newScale > 1f) {
-                                            event.changes.forEach { 
-                                                velocityTracker.addPosition(it.uptimeMillis, it.position)
-                                                it.consume() 
-                                            }
-                                        }
-                                    }
-                                }
-                            } while (event.changes.any { it.pressed })
-
-                            if (!isPinching && scaleAnim.value > 1f) {
-                                val velocity = velocityTracker.calculateVelocity()
-                                // Scale velocity by zoom level so panning inertia is consistent at all zoom levels
-                                val targetVelocity = calculateTargetVelocity(velocity, scaleAnim.value)
-                                val amplifiedVelocityX = targetVelocity.x
-                                val amplifiedVelocityY = targetVelocity.y
-                                
-                                val extraWidth = (scaleAnim.value - 1) * size.width
-                                val extraHeight = (scaleAnim.value - 1) * size.height
-                                val maxX = extraWidth / 2f
-                                val maxY = extraHeight / 2f
-                                val isHorizontalMain = state.direction != ReadingDirection.TTB
-
-                                launch {
-                                    offsetXAnim.animateDecay(initialVelocity = amplifiedVelocityX, animationSpec = exponentialDecay()) {
-                                        val clampedValue = value.coerceIn(-maxX, maxX)
-                                        val overscroll = value - clampedValue
-                                        if (overscroll != 0f) {
-                                            launch { 
-                                                offsetXAnim.snapTo(clampedValue)
-                                                if (isHorizontalMain) {
-                                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) overscroll else -overscroll
-                                                    listState.scrollBy(scrollAmount)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                launch {
-                                    offsetYAnim.animateDecay(initialVelocity = amplifiedVelocityY, animationSpec = exponentialDecay()) {
-                                        val clampedValue = value.coerceIn(-maxY, maxY)
-                                        val overscroll = value - clampedValue
-                                        if (overscroll != 0f) {
-                                            launch { 
-                                                offsetYAnim.snapTo(clampedValue)
-                                                if (!isHorizontalMain) {
-                                                    listState.scrollBy(-overscroll)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if (scaleAnim.value != state.zoomLevel) {
-                                viewModel.onZoomChanged(scaleAnim.value)
-                            }
-                        }
-                    }
-                }
+                .readerGestures(
+                    state = state,
+                    scaleAnim = scaleAnim,
+                    getOffsetX = { offsetX },
+                    getOffsetY = { offsetY },
+                    setOffsetX = { offsetX = it },
+                    setOffsetY = { offsetY = it },
+                    getDecayJob = { decayJob },
+                    setDecayJob = { decayJob = it },
+                    coroutineScope = coroutineScope,
+                    listState = listState,
+                    onZoomChanged = viewModel::onZoomChanged
+                )
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onDoubleTap = {
                             coroutineScope.launch {
+                                decayJob?.cancel()
                                 launch { scaleAnim.animateTo(1f) }
-                                launch { offsetXAnim.animateTo(0f) }
-                                launch { offsetYAnim.animateTo(0f) }
+                                launch { androidx.compose.animation.core.animate(offsetX, 0f) { value, _ -> offsetX = value } }
+                                launch { androidx.compose.animation.core.animate(offsetY, 0f) { value, _ -> offsetY = value } }
                                 viewModel.resetZoom()
                             }
                         },
@@ -249,8 +134,8 @@ fun ReaderScreen(
                 .graphicsLayer(
                     scaleX = scaleAnim.value,
                     scaleY = scaleAnim.value,
-                    translationX = offsetXAnim.value,
-                    translationY = offsetYAnim.value
+                    translationX = offsetX,
+                    translationY = offsetY
                 )
         ) {
             when {
@@ -382,13 +267,6 @@ fun ReaderScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text(if (state.isCoverModeEnabled) "Hide Cover Pages" else "Show Cover Pages") },
-                                onClick = {
-                                    showMenu = false
-                                    viewModel.onCoverModeChanged(!state.isCoverModeEnabled)
-                                }
-                            )
                             DropdownMenuItem(
                                 text = { Text("Reading Direction") },
                                 onClick = {
@@ -574,10 +452,7 @@ fun PdfPageDisplay(
             )
             
             // Draw text selection bounds if they exist for this page
-            // Note: Since textSelection is not page-specific in state currently, 
-            // we assume the user selects on the active page. 
-            // In a full implementation, we'd check if textSelection belongs to this page.
-            if (state.textSelection != null && state.currentPage == pageIndex) {
+            if (state.textSelection != null && state.textSelection.pageIndex == pageIndex) {
                 val startHandle = state.textSelection.startHandle
                 val stopHandle = state.textSelection.stopHandle
 
@@ -716,10 +591,164 @@ fun ReaderScreenPreview() {
 }
 
 internal fun calculateTargetVelocity(baseVelocity: androidx.compose.ui.unit.Velocity, zoomScale: Float): androidx.compose.ui.unit.Velocity {
-    // Scale velocity by the zoom level to ensure the physical flick feels consistent
-    // regardless of how far the document is zoomed in.
-    return androidx.compose.ui.unit.Velocity(
-        x = baseVelocity.x * zoomScale,
-        y = baseVelocity.y * zoomScale
-    )
+    // With translation strictly mapped 1:1 to screen pixels, the velocity tracker directly provides
+    // the correct screen-pixel decay velocity. No scaling is needed.
+    return baseVelocity
+}
+
+@kotlinx.coroutines.FlowPreview
+@androidx.compose.foundation.ExperimentalFoundationApi
+internal fun Modifier.readerGestures(
+    state: ReaderState,
+    scaleAnim: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    getOffsetX: () -> Float,
+    getOffsetY: () -> Float,
+    setOffsetX: (Float) -> Unit,
+    setOffsetY: (Float) -> Unit,
+    getDecayJob: () -> kotlinx.coroutines.Job?,
+    setDecayJob: (kotlinx.coroutines.Job?) -> Unit,
+    coroutineScope: kotlinx.coroutines.CoroutineScope,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    onZoomChanged: (Float) -> Unit
+): Modifier = this.pointerInput(state.direction, state.textSelection != null) {
+    if (state.textSelection != null) return@pointerInput
+    coroutineScope.launch {
+        awaitPointerEventScope {
+            while (true) {
+                val velocityTracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
+                var isPinching = false
+                
+                awaitFirstDown(requireUnconsumed = false)
+                getDecayJob()?.cancel()
+
+                var currentZoom = scaleAnim.value
+
+                do {
+                    val event = awaitPointerEvent()
+                    val canceled = event.changes.any { it.isConsumed }
+                    if (!canceled) {
+                        val zoomChange = event.calculateZoom()
+                        val panChange = event.calculatePan()
+                        val centroid = event.calculateCentroid(useCurrent = false)
+
+                        if (zoomChange != 1f || panChange != androidx.compose.ui.geometry.Offset.Zero) {
+                            if (zoomChange != 1f) isPinching = true
+                            val oldScale = currentZoom
+                            val newScale = (oldScale * zoomChange).coerceIn(1f, 5f)
+                            currentZoom = newScale
+
+                            launch { scaleAnim.snapTo(newScale) }
+
+                            val extraWidth = (newScale - 1) * size.width
+                            val extraHeight = (newScale - 1) * size.height
+                            val maxX = extraWidth / 2f
+                            val maxY = extraHeight / 2f
+                            val isHorizontalMain = state.direction != ReadingDirection.TTB
+
+                            val targetOffsetX = if (centroid != androidx.compose.ui.geometry.Offset.Unspecified) {
+                                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                                panChange.x + (centroid.x - center.x) * (1 - newScale / oldScale) + getOffsetX() * (newScale / oldScale)
+                            } else {
+                                getOffsetX() + panChange.x
+                            }
+                            
+                            val targetOffsetY = if (centroid != androidx.compose.ui.geometry.Offset.Unspecified) {
+                                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                                panChange.y + (centroid.y - center.y) * (1 - newScale / oldScale) + getOffsetY() * (newScale / oldScale)
+                            } else {
+                                getOffsetY() + panChange.y
+                            }
+
+                            val clampedX = targetOffsetX.coerceIn(-maxX, maxX)
+                            val clampedY = targetOffsetY.coerceIn(-maxY, maxY)
+                            val spillX = targetOffsetX - clampedX
+                            val spillY = targetOffsetY - clampedY
+
+                            setOffsetX(clampedX)
+                            setOffsetY(clampedY)
+                            
+                            if (isHorizontalMain) {
+                                val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
+                                listState.dispatchRawDelta(scrollAmount / newScale)
+                            } else {
+                                listState.dispatchRawDelta(-spillY / newScale)
+                            }
+                            
+                            if (newScale > 1f) {
+                                event.changes.forEach { 
+                                    velocityTracker.addPosition(it.uptimeMillis, it.position)
+                                    it.consume() 
+                                }
+                            }
+                        }
+                    }
+                } while (event.changes.any { it.pressed })
+
+                if (!isPinching && scaleAnim.value > 1f) {
+                    val velocity = velocityTracker.calculateVelocity()
+                    val targetVelocity = calculateTargetVelocity(velocity, scaleAnim.value)
+                    val amplifiedVelocityX = targetVelocity.x
+                    val amplifiedVelocityY = targetVelocity.y
+                    
+                    val extraWidth = (scaleAnim.value - 1) * size.width
+                    val extraHeight = (scaleAnim.value - 1) * size.height
+                    val maxX = extraWidth / 2f
+                    val maxY = extraHeight / 2f
+                    val isHorizontalMain = state.direction != ReadingDirection.TTB
+
+                    val newJob = launch {
+                        launch {
+                            var lastValue = getOffsetX()
+                            androidx.compose.animation.core.AnimationState(initialValue = lastValue, initialVelocity = amplifiedVelocityX).animateDecay(androidx.compose.animation.core.exponentialDecay()) {
+                                val delta = value - lastValue
+                                lastValue = value
+                                
+                                val targetX = getOffsetX() + delta
+                                val clampedX = targetX.coerceIn(-maxX, maxX)
+                                val spillX = targetX - clampedX
+                                
+                                setOffsetX(clampedX)
+                                
+                                if (isHorizontalMain && spillX != 0f) {
+                                    val scrollAmount = if (state.direction == ReadingDirection.RTL) spillX else -spillX
+                                    val consumed = listState.dispatchRawDelta(scrollAmount / scaleAnim.value)
+                                    if (kotlin.math.abs(consumed) < kotlin.math.abs(scrollAmount / scaleAnim.value) - 0.5f) {
+                                        cancelAnimation()
+                                    }
+                                } else if (!isHorizontalMain && spillX != 0f) {
+                                    cancelAnimation()
+                                }
+                            }
+                        }
+                        launch {
+                            var lastValue = getOffsetY()
+                            androidx.compose.animation.core.AnimationState(initialValue = lastValue, initialVelocity = amplifiedVelocityY).animateDecay(androidx.compose.animation.core.exponentialDecay()) {
+                                val delta = value - lastValue
+                                lastValue = value
+                                
+                                val targetY = getOffsetY() + delta
+                                val clampedY = targetY.coerceIn(-maxY, maxY)
+                                val spillY = targetY - clampedY
+                                
+                                setOffsetY(clampedY)
+                                
+                                if (!isHorizontalMain && spillY != 0f) {
+                                    val consumed = listState.dispatchRawDelta(-spillY / scaleAnim.value)
+                                    if (kotlin.math.abs(consumed) < kotlin.math.abs(-spillY / scaleAnim.value) - 0.5f) {
+                                        cancelAnimation()
+                                    }
+                                } else if (isHorizontalMain && spillY != 0f) {
+                                    cancelAnimation()
+                                }
+                            }
+                        }
+                    }
+                    setDecayJob(newJob)
+                }
+                if (scaleAnim.value != state.zoomLevel) {
+                    onZoomChanged(scaleAnim.value)
+                }
+            }
+        }
+    }
 }
