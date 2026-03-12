@@ -75,11 +75,10 @@ To ensure a smooth swiping experience and optimal resource usage:
 - **Job Cancellation**: If a user swiping causes multiple page changes in rapid succession, any active background caching job must be explicitly cancelled before starting a new one.
 - **Exception Safety**: The system must distinguish between fatal rendering errors and expected job cancellations during navigation.
 
-### High-Zoom Rendering (Tiling Strategy)
+### High-Zoom Rendering
 To support 100%-500% zoom without `OutOfMemory` errors:
-- **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution.
-- **Tiling**: For zoom levels > 200%, the renderer must split the page into **tiles** (e.g., 512x512px) and only render the tiles currently visible in the viewport.
-- **Bitmap Pooling**: Reuse `Bitmap` objects using a `BitmapPool` to reduce Garbage Collection (GC) pressure.
+- **Dynamic Scaling**: Render the page bitmap at the current zoom level's resolution to ensure text remains crisp.
+- **Memory Management**: The `ReaderViewModel` must strictly limit the sliding cache window to free up old, massive zoom bitmaps, relying on Android's native Garbage Collection to reclaim memory when the user pans away.
 
 ### Thumbnail Generation
 For the Library Mode UI:

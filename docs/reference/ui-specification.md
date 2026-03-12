@@ -24,8 +24,7 @@ A distraction-free environment for document consumption.
 - **Top Bar**: Hidden by default (Immersive View). When visible, the title must display the **File Name** of the currently opened document.
 - **Immersive View**: UI hidden by default.
 - **Scroll Physics**:
-  - **LTR / RTL**: **Paginated** (snaps to page boundaries) to simulate a physical book.
-  - **TTB**: **Continuous** scrolling for a vertical document flow.
+  - **LTR / RTL / TTB**: **Continuous** scrolling for a fluid document flow. No forced pagination or snapping.
 - **Rendering Proportions**:
   - **Aspect Ratio**: The app must preserve the original width-to-height ratio of each page.
   - **Best Fit**: Pages must be scaled to fit the display width or height, whichever is reached first, without stretching or distortion.
