@@ -50,6 +50,9 @@ class LibraryViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private val _expandedDirectory = MutableStateFlow<String?>(null)
+    val expandedDirectory: StateFlow<String?> = _expandedDirectory.asStateFlow()
+
     val snackbarHostState = SnackbarHostState()
 
     val isGoogleAuthenticated: StateFlow<Boolean> = driveService.authState
@@ -116,6 +119,11 @@ class LibraryViewModel @Inject constructor(
      */
     fun onTabSelected(index: Int) {
         _selectedTab.value = index
+        _expandedDirectory.value = null
+    }
+
+    fun onDirectoryTapped(directory: String) {
+        _expandedDirectory.value = if (_expandedDirectory.value == directory) null else directory
     }
 
     fun addSyncDirectory(uri: String) {

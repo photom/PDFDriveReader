@@ -14,10 +14,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] `id` is properly assigned and immutable.
     - [ ] `close()` correctly triggers the release of underlying resources.
     - [ ] **Pre-loading**: `pageSizes` list accurately reflects the size of all pages when initialized.
-    - [ ] **Cover Detection**: Marks the first and/or last page as covers if their dimensions differ from the majority of pages.
 - **`ReadingSettings` (Value Object)**
-    - [ ] Equality: Two settings with the same direction/zoom/coverMode are equal.
-    - [ ] Default: Initialized with LTR, 100% zoom, and coverMode enabled.
+    - [ ] Equality: Two settings with the same direction/zoom are equal.
+    - [ ] Default: Initialized with LTR and 100% zoom.
 - **`PagePosition` (Value Object)**
     - [ ] Validation: Page index cannot be negative.
     - [ ] Validation: Zoom level must be between 1.0 and 5.0.
@@ -72,12 +71,15 @@ This document provides a granular test plan for every module in the PDFDriveRead
 ## 3. Presentation Layer Modules (`ui/`)
 
 ### 3.1 LibraryViewModel
+- **States**
+    - [ ] Directory State: Verifies the `expandedDirectory` state tracks the currently open accordion node.
 - **Actions**
     - [ ] `onRefresh`: Triggers the `SyncLocalLibrary` use case for all stored SAF directories.
     - [ ] `onFolderPicked`: Verifies that adding a new SAF directory triggers an immediate scan.
     - [ ] `onFilesPicked`: Verifies that picking multiple PDF files via SAF correctly adds them to the database.
     - [ ] `onSearchQueryChanged`: Updates the filtered list in real-time.
-    - [ ] `onTabSelected`: Switches the view between Local and Cloud sources.
+    - [ ] `onTabSelected`: Switches the view between Local and Cloud sources and clears `expandedDirectory`.
+    - [ ] `onDirectoryTapped`: Toggles the `expandedDirectory`. Closes if already open, opens if different.
 
 ### 3.2 ReaderViewModel
 - **UI State (Immersive)**
@@ -96,7 +98,6 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Navigation & Paging**
     - [ ] `onPageChanged`: Correctly handles out-of-bounds page indices.
     - [ ] `onDirectionChanged`: Updates the `ReadingDirection` and triggers a persistence update.
-    - [ ] `onCoverModeChanged`: Updates the `coverMode` flag, triggers persistence update, and correctly recalculates the visible pages list to skip covers when w/o cover mode is active.
     - [ ] UI Verification: Verifies that the slider row displays both the current page and max page labels.
     - [ ] Theme Support: Verifies that text labels use `onSurface` color for visibility in Dark Mode.
 
@@ -166,10 +167,10 @@ This document provides a granular test plan for every module in the PDFDriveRead
 - **Integrated Axis Scrolling**
     - [ ] **TTB**: Verifies that vertical delta transitions from viewport panning to `LazyList` scrolling when zoomed edges are reached.
     - [ ] **LTR/RTL**: Verifies that horizontal delta transitions from viewport panning to `LazyList` scrolling when zoomed edges are reached.
+    - [ ] Verification: Verifies that during panning (swiping) while zoomed in, the document moves exactly 1:1 with the user's finger on the screen (no drift between the touch point and the character).
 - **Inertia & Physics**
     - [ ] Verification: Verifies that release velocity is used to initialize a decay animation.
-    - [ ] Verification: Verifies that release velocity is proportionally scaled by the zoom level to ensure consistent panning inertia regardless of the zoom scale.
-    - [ ] Verification: Verifies that the momentum is distributed between viewport offset and list scroll position based on edge clamping.
+    - [ ] Verification: Verifies that the momentum from an active decay seamlessly distributes between viewport offset and list scroll position (`dispatchRawDelta`) without cancelling the animation prematurely when hitting viewport edges.
     - [ ] Verification: Verifies that the document does not automatically snap or move after the momentum finishes.
 
 ### 3.7 Text Selection & Copy (API 35+)
@@ -178,6 +179,9 @@ This document provides a granular test plan for every module in the PDFDriveRead
     - [ ] Verification: Verifies that the selection is cleared when a user taps outside of the selected range or navigates away.
     - [ ] Verification: Verifies that the selection remains active when a user taps inside the selected range.
     - [ ] Verification: Verifies that updating the start or end bounds of a selection triggers a state update with the new extracted text and bounds.
+    - [ ] Verification: Verifies that when dragging one selection handle, the coordinate of the other (stationary) handle does not change or drift.
+    - [ ] Verification: Verifies that rapid updates to selection bounds (like dragging a handle) are conflated/debounced to prevent spamming the native `PdfRenderer`.
+    - [ ] Verification: Verifies that the text selection remains drawn and anchored strictly to the page it was initiated on, even if the primary focused `currentPage` index changes.
     - [ ] Verification: Verifies that standard Reader gestures (swiping, panning, zooming) are disabled while a text selection is active.
 - **API Version Compatibility**
     - [ ] Verification: Verifies that on API < 35, the `selectText` method safely returns `null` or an empty state without causing a crash.
