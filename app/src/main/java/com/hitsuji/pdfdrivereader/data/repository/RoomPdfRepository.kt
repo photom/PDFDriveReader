@@ -28,7 +28,7 @@ import javax.inject.Inject
  * Room-backed implementation of the [PdfRepository].
  */
 class RoomPdfRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val dao: PdfDao,
     private val documentMapper: DocumentMapper,
     private val sessionMapper: ReadingSessionMapper,

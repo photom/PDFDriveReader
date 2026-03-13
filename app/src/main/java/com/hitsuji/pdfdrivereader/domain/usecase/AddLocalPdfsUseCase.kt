@@ -13,7 +13,7 @@ import javax.inject.Inject
  * Use case for manually adding local PDF files (from SAF picker) to the library.
  */
 class AddLocalPdfsUseCase @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val repository: PdfRepository
 ) {
     suspend operator fun invoke(uris: List<String>) {

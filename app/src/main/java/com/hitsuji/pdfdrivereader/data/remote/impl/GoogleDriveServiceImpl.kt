@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.hitsuji.pdfdrivereader.data.remote.impl
 
 import android.content.Context
@@ -28,11 +30,13 @@ import javax.inject.Singleton
 /**
  * Production implementation of [GoogleDriveService] using Google Play Services.
  * 
- * @property context Application context for accessing Google SignIn.
+ * TODO: Migrate deprecated GoogleSignIn API to Android CredentialManager API.
+ * The current GoogleSignIn API is deprecated by Google.
  */
+@Suppress("DEPRECATION")
 @Singleton
 class GoogleDriveServiceImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : GoogleDriveService {
 
     private val _authState = MutableStateFlow(false)

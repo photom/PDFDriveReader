@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.hitsuji.pdfdrivereader.presentation.library
 
 import android.Manifest
@@ -30,6 +32,7 @@ import com.hitsuji.pdfdrivereader.domain.model.DocumentMetadata
 import com.hitsuji.pdfdrivereader.domain.model.SourceType
 import com.hitsuji.pdfdrivereader.presentation.theme.PdfDriveReaderTheme
 
+@Suppress("DEPRECATION") // TODO: Migrate GoogleSignIn to CredentialManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
@@ -215,6 +218,7 @@ fun LibraryScreen(
     }
 }
 
+@Suppress("DEPRECATION") // TODO: Migrate GoogleSignIn to CredentialManager
 @Composable
 fun DriveAuthWall(onSignInClick: () -> Unit) {
     Column(

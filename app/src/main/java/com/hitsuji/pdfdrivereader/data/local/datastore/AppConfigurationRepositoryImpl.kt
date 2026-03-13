@@ -23,7 +23,7 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
  */
 @Singleton
 class AppConfigurationRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : AppConfigurationRepository {
 
     private val KEY_MODE = stringPreferencesKey("last_mode")

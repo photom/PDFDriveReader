@@ -34,7 +34,7 @@ import com.hitsuji.pdfdrivereader.presentation.theme.PdfDriveReaderTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ReaderScreen(
     viewModel: ReaderViewModel,
@@ -43,7 +43,8 @@ fun ReaderScreen(
     val state by viewModel.state.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     var showDirectionDialog by remember { mutableStateOf(false) }
-    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val clipboardManager = remember { context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -375,7 +376,8 @@ fun ReaderScreen(
                     .padding(8.dp)
             ) {
                 Button(onClick = {
-                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(state.textSelection!!.text))
+                    val clip = android.content.ClipData.newPlainText("Copied Text", state.textSelection!!.text)
+                    clipboardManager.setPrimaryClip(clip)
                     viewModel.clearSelection()
                 }) {
                     Icon(Icons.Default.ContentCopy, contentDescription = "Copy")
@@ -461,7 +463,7 @@ fun PdfPageDisplay(
                         awaitPointerEventScope {
                             while (true) {
                                 val down = awaitFirstDown(requireUnconsumed = false)
-                                if (startHandle != null && stopHandle != null && pdfSize != null && boxSize.width > 0) {
+                                if (pdfSize != null && boxSize.width > 0) {
                                     val startX = (startHandle.x / pdfSize.width) * boxSize.width
                                     val startY = (startHandle.y / pdfSize.height) * boxSize.height
                                     val stopX = (stopHandle.x / pdfSize.width) * boxSize.width
@@ -502,29 +504,27 @@ fun PdfPageDisplay(
                         )
                     }
 
-                    if (startHandle != null && stopHandle != null) {
-                        val startX = (startHandle.x / pdfSize!!.width) * size.width
-                        val startY = (startHandle.y / pdfSize.height) * size.height
-                        val stopX = (stopHandle.x / pdfSize.width) * size.width
-                        val stopY = (stopHandle.y / pdfSize.height) * size.height
-                        
-                        val r = 11.dp.toPx()
-                        val handleColor = Color(0xFF137EC2) // Chrome-like solid blue
-                        
-                        // Left handle (start): teardrop pointing top-right
-                        // Point is at (startX, startY)
-                        val startCx = startX - r
-                        val startCy = startY + r
-                        drawCircle(color = handleColor, radius = r, center = Offset(startCx, startCy))
-                        drawRect(color = handleColor, topLeft = Offset(startCx, startY), size = androidx.compose.ui.geometry.Size(r, r))
-                        
-                        // Right handle (stop): teardrop pointing top-left
-                        // Point is at (stopX, stopY)
-                        val stopCx = stopX + r
-                        val stopCy = stopY + r
-                        drawCircle(color = handleColor, radius = r, center = Offset(stopCx, stopCy))
-                        drawRect(color = handleColor, topLeft = Offset(stopX, stopY), size = androidx.compose.ui.geometry.Size(r, r))
-                    }
+                    val startX = (startHandle.x / pdfSize!!.width) * size.width
+                    val startY = (startHandle.y / pdfSize.height) * size.height
+                    val stopX = (stopHandle.x / pdfSize.width) * size.width
+                    val stopY = (stopHandle.y / pdfSize.height) * size.height
+                    
+                    val r = 11.dp.toPx()
+                    val handleColor = Color(0xFF137EC2) // Chrome-like solid blue
+                    
+                    // Left handle (start): teardrop pointing top-right
+                    // Point is at (startX, startY)
+                    val startCx = startX - r
+                    val startCy = startY + r
+                    drawCircle(color = handleColor, radius = r, center = Offset(startCx, startCy))
+                    drawRect(color = handleColor, topLeft = Offset(startCx, startY), size = androidx.compose.ui.geometry.Size(r, r))
+                    
+                    // Right handle (stop): teardrop pointing top-left
+                    // Point is at (stopX, stopY)
+                    val stopCx = stopX + r
+                    val stopCy = stopY + r
+                    drawCircle(color = handleColor, radius = r, center = Offset(stopCx, stopCy))
+                    drawRect(color = handleColor, topLeft = Offset(stopX, stopY), size = androidx.compose.ui.geometry.Size(r, r))
                 }
             }
         } else {
@@ -596,7 +596,7 @@ internal fun calculateTargetVelocity(baseVelocity: androidx.compose.ui.unit.Velo
     return baseVelocity
 }
 
-@kotlinx.coroutines.FlowPreview
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @androidx.compose.foundation.ExperimentalFoundationApi
 internal fun Modifier.readerGestures(
     state: ReaderState,

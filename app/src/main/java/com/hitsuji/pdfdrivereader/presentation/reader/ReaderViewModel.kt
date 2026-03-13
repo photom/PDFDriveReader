@@ -22,7 +22,7 @@ import kotlin.math.min
 /**
  * ViewModel for the immersive Reader screen.
  */
-@kotlinx.coroutines.FlowPreview
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
     private val openDocumentUseCase: OpenDocumentUseCase,
