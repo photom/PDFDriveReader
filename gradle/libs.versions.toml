@@ -25,7 +25,7 @@ googleHttpClientGson = "1.43.3"
 coroutinesTest = "1.10.1"
 mockitoKotlin = "6.2.3"
 robolectric = "4.16.1"
-testCoreKtx = "1.6.1"
+testCoreKtx = "1.7.0"
 testJunitKtx = "1.2.1"
 
 [libraries]
