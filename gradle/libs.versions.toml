@@ -1,4 +1,6 @@
 [versions]
+# On AGP upgrades, check that the _internal-unified-test-platform configuration
+# prefix in app/build.gradle.kts still matches, or the UTP security floors stop applying.
 agp = "9.0.0"
 kotlin = "2.4.21"
 ksp = "2.3.14"

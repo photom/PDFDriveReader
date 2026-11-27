@@ -2,8 +2,12 @@
 buildscript {
     dependencies {
         // Security: the Android Gradle Plugin pulls in vulnerable transitive
-        // build-tool libraries. Raise them to patched versions; constraints
-        // never add libraries to the classpath.
+        // build-tool libraries. Raise them to patched versions; platforms and
+        // constraints never add libraries to the classpath.
+        // No current plugin puts Netty here (it comes in through the Unified
+        // Test Platform, see app/build.gradle.kts); the platform keeps it patched
+        // if a future plugin does.
+        classpath(platform(libs.netty.bom))
         constraints {
             classpath(libs.guava)
             classpath(libs.bouncycastle.bcprov)
