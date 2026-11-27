@@ -5,6 +5,17 @@ plugins {
     alias(libs.plugins.kotlin.compose.compiler)
 }
 
+// Compile Java and Kotlin with JDK 25 whichever JDK runs Gradle.
+kotlin {
+    jvmToolchain(25)
+}
+
+// Hilt's hiltJavaCompile tasks ignore the toolchain above and would use the JDK
+// that runs Gradle, so point every Java compile task at the same JDK 25.
+tasks.withType<JavaCompile>().configureEach {
+    javaCompiler.set(javaToolchains.compilerFor { languageVersion.set(JavaLanguageVersion.of(25)) })
+}
+
 android {
     namespace = "com.hitsuji.pdfdrivereader"
     compileSdk = 36
@@ -29,8 +40,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
     buildFeatures {
         compose = true
