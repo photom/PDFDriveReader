@@ -18,6 +18,7 @@ Explore our documentation for more detailed information:
 
 ### [How-to Guides](./docs/how-to-guides/navigation-and-reading.md)
 - **Navigation & Reading**: Practical guides for zooming, reading directions, and link jumps.
+- **[Build from Source](./docs/how-to-guides/build-from-source.md)**: JDK, Android SDK and Android Studio requirements, and the Gradle commands for building and testing.
 
 ### [Reference](./docs/reference/)
 - **[UI Specification](./docs/reference/ui-specification.md)**: Technical details of UI components and interactions.
