@@ -31,12 +31,15 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
       # Robolectric downloads its Android runtime jars into ~/.m2 at test time.
+      # Key on the Robolectric version only, so other dependency bumps reuse it.
+      - name: Read Robolectric version
+        id: robolectric
+        run: echo "version=$(sed -n 's/^robolectric = "\(.*\)"$/\1/p' gradle/libs.versions.toml)" >> "$GITHUB_OUTPUT"
       - name: Cache Robolectric runtime
         uses: actions/cache@v5
         with:
           path: ~/.m2/repository/org/robolectric
-          key: robolectric-${{ hashFiles('gradle/libs.versions.toml') }}
-          restore-keys: robolectric-
+          key: robolectric-${{ steps.robolectric.outputs.version }}
       - name: Test CI scripts
         run: python3 -m unittest discover -s .github/scripts
       - name: Grant execute permission for gradlew
@@ -71,6 +74,7 @@ jobs:
               msg = "\n".join(f"{d}  <- {','.join(sorted(c))[:300]}" for d, c in sorted(deps.items())) or "none"
               print(f"::notice title=deps {k}::" + msg[:3800].replace("%", "%25").replace("\n", "%0A"))
           PY
+          grep -nE "[Pp]roject '|^[a-zA-Z][A-Za-z0-9]*( - .*)?\$|io\.netty:netty-codec-http:" deps.txt | grep -B4 'netty-codec-http:' | head -60 || true
       - name: Upload Lint Report
         uses: actions/upload-artifact@v7
         if: always()

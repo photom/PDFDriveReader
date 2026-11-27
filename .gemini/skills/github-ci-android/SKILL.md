@@ -9,7 +9,7 @@ This skill provides expert guidance on maintaining and extending the GitHub Acti
 
 ## Core CI Principles
 
-1. **Fast Feedback**: Ensure unit tests (`testDebugUnitTest`) and static analysis (`lintDebug`) run efficiently. Utilize gradle caching via `actions/setup-java`.
+1. **Fast Feedback**: Ensure unit tests (`testDebugUnitTest`) and static analysis (`lintDebug`) run efficiently. Cache dependencies with `gradle/actions/setup-gradle` (per-job caches) and cache Robolectric's runtime jars in `~/.m2/repository/org/robolectric`. Do not use `actions/setup-java`'s `cache: gradle`: its single shared key let the first finishing job save the cache, so test-only artifacts were re-downloaded and Maven Central intermittently returned HTTP 429.
 2. **Security & Vulnerability**: Maintain dependency review and submission actions to catch vulnerable dependencies automatically. The CI is configured to use GitHub's dependency graph.
 3. **Static Analysis & Metrics**: Use Android Lint as the baseline for static analysis. This catches structural, performance, and security issues in code and resources.
 
@@ -48,4 +48,6 @@ If Android UI instrumentation tests (`androidTest`) become a core metric:
 ## Workflow Modification Rules
 - ALWAYS use `--no-daemon` for Gradle commands in CI to prevent memory exhaustion and zombie processes.
 - NEVER commit secrets or credentials directly. Use GitHub Secrets (`${{ secrets.MY_SECRET }}`).
+- Keep `defaults.run.shell: bash` in workflows: it runs steps with `-eo pipefail`, so piped commands such as `./gradlew ... | tee gradle.log` fail when Gradle fails.
+- On failure, run `.github/scripts/report_gradle_failures.py <gradle-log>...` so failures appear as annotations even when job logs are unavailable. Its unit tests run in CI (`python3 -m unittest discover -s .github/scripts`).
 - Ensure you validate YAML syntax and verify action inputs according to their documentation when making changes to `.github/workflows/ci.yml`.
