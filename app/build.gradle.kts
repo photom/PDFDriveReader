@@ -97,4 +97,12 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Security: raise vulnerable transitive dependencies to patched versions.
+    // Constraints only take effect where a library is already depended upon.
+    constraints {
+        implementation(libs.guava) // app runtime; Gradle selects the -android variant
+        ksp(libs.guava) // Room and Hilt annotation processors
+        testImplementation(libs.bouncycastle.bcprov) // via Robolectric
+    }
 }
