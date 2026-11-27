@@ -106,3 +106,15 @@ dependencies {
         testImplementation(libs.bouncycastle.bcprov) // via Robolectric
     }
 }
+
+// Security: AGP resolves the Unified Test Platform, which runs instrumented
+// tests, in its own internal configurations. Its gRPC client brings in Netty,
+// Guava and BouncyCastle, so raise them there too. The platform and the
+// constraints only raise versions; they add no libraries.
+configurations.matching { it.name.startsWith("_internal-unified-test-platform") }.configureEach {
+    project.dependencies.add(name, project.dependencies.platform(libs.netty.bom))
+    project.dependencies.constraints.add(name, libs.guava)
+    project.dependencies.constraints.add(name, libs.bouncycastle.bcprov)
+    project.dependencies.constraints.add(name, libs.bouncycastle.bcpkix)
+    project.dependencies.constraints.add(name, libs.bouncycastle.bcutil)
+}

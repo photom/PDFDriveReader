@@ -2,9 +2,8 @@
 buildscript {
     dependencies {
         // Security: the Android Gradle Plugin pulls in vulnerable transitive
-        // build-tool libraries. Raise them to patched versions; constraints and
-        // platforms never add libraries to the classpath.
-        classpath(platform(libs.netty.bom))
+        // build-tool libraries. Raise them to patched versions; constraints
+        // never add libraries to the classpath.
         constraints {
             classpath(libs.guava)
             classpath(libs.bouncycastle.bcprov)
