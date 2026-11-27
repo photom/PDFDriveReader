@@ -22,9 +22,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon 2>&1 | tee gradle-test.log
       - name: Run Android Lint
-        run: ./gradlew lintDebug --no-daemon
+        run: ./gradlew lintDebug --no-daemon 2>&1 | tee gradle-lint.log
+      - name: Report Gradle failures
+        if: failure()
+        run: cat gradle-*.log 2>/dev/null | python3 .github/scripts/report_gradle_failures.py /dev/stdin .
       - name: Upload Lint Report
         uses: actions/upload-artifact@v7
         if: always()
@@ -46,7 +49,10 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon 2>&1 | tee gradle-build.log
+      - name: Report Gradle failures
+        if: failure()
+        run: python3 .github/scripts/report_gradle_failures.py gradle-build.log .
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
