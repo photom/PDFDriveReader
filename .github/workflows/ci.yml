@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ "**" ]
 
+# `shell: bash` runs steps with `-eo pipefail`, so `gradlew ... | tee` fails
+# when Gradle fails (the implicit default shell has no pipefail).
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     name: Unit Tests & Lint
@@ -18,13 +24,33 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
+      # setup-gradle caches each job's own dependencies. setup-java's shared
+      # `cache: gradle` key let whichever job finished first save the cache,
+      # so test-only artifacts were re-downloaded and Maven Central
+      # intermittently answered 429 Too Many Requests.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+      # Robolectric downloads its Android runtime jars into ~/.m2 at test time.
+      # Key on the Robolectric version only, so other dependency bumps reuse it.
+      - name: Read Robolectric version
+        id: robolectric
+        run: echo "version=$(sed -n 's/^robolectric = "\(.*\)"$/\1/p' gradle/libs.versions.toml)" >> "$GITHUB_OUTPUT"
+      - name: Cache Robolectric runtime
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ steps.robolectric.outputs.version }}
+      - name: Test CI scripts
+        run: python3 -m unittest discover -s .github/scripts
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon 2>&1 | tee gradle-test.log
       - name: Run Android Lint
-        run: ./gradlew lintDebug --no-daemon
+        run: ./gradlew lintDebug --no-daemon 2>&1 | tee gradle-lint.log
+      - name: Report Gradle failures
+        if: failure()
+        run: python3 .github/scripts/report_gradle_failures.py gradle-test.log gradle-lint.log
       - name: Upload Lint Report
         uses: actions/upload-artifact@v7
         if: always()
@@ -44,9 +70,13 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon 2>&1 | tee gradle-build.log
+      - name: Report Gradle failures
+        if: failure()
+        run: python3 .github/scripts/report_gradle_failures.py gradle-build.log
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:

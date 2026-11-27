@@ -82,13 +82,13 @@ class LocalFileScannerTest {
         ))
 
         // Add a valid PDF
-        cursor.addRow(arrayOf(1L, "Document1.pdf", "/storage/emulated/0/Download/Document1.pdf", "Download/"))
+        cursor.addRow(arrayOf<Any?>(1L, "Document1.pdf", "/storage/emulated/0/Download/Document1.pdf", "Download/"))
         // Add another valid PDF (with different casing for extension)
-        cursor.addRow(arrayOf(2L, "Document2.PDF", "/storage/emulated/0/Documents/Document2.PDF", "Documents/"))
+        cursor.addRow(arrayOf<Any?>(2L, "Document2.PDF", "/storage/emulated/0/Documents/Document2.PDF", "Documents/"))
         // Add a non-PDF file (should be ignored by scanner logic if it bypassed selection somehow)
-        cursor.addRow(arrayOf(3L, "Image.jpg", "/storage/emulated/0/Pictures/Image.jpg", "Pictures/"))
+        cursor.addRow(arrayOf<Any?>(3L, "Image.jpg", "/storage/emulated/0/Pictures/Image.jpg", "Pictures/"))
         // Add a duplicate entry (to test deduplication logic)
-        cursor.addRow(arrayOf(4L, "Document1.pdf", "/storage/emulated/0/Download/Document1.pdf", "Download/"))
+        cursor.addRow(arrayOf<Any?>(4L, "Document1.pdf", "/storage/emulated/0/Download/Document1.pdf", "Download/"))
 
         // Mock the ContentResolver to return this cursor
         whenever(contentResolver.query(
