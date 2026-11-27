@@ -51,30 +51,6 @@ jobs:
       - name: Report Gradle failures
         if: failure()
         run: python3 .github/scripts/report_gradle_failures.py gradle-test.log gradle-lint.log
-      - name: TEMP dependency diagnostics
-        if: always()
-        run: |
-          ./gradlew -q buildEnvironment :app:dependencies --no-daemon > deps.txt 2>&1 || true
-          python3 - <<'PY'
-          import re, collections
-          pats = {"netty": r"io\.netty:", "guava": r"com\.google\.guava:guava:", "bouncycastle": r"org\.bouncycastle:", "kgp": r"org\.jetbrains\.kotlin:kotlin-gradle-plugin[:-]"}
-          hits = {k: collections.defaultdict(set) for k in pats}
-          conf = "?"
-          for line in open("deps.txt", errors="replace"):
-              line = line.rstrip()
-              m = re.match(r"^([A-Za-z][\w]*)( - .*)?$", line)
-              if m and not line.startswith(("+", "|", "\\")):
-                  conf = m.group(1)
-                  continue
-              for k, p in pats.items():
-                  if re.search(p, line):
-                      dep = re.sub(r"^[\s|+\\-]+", "", line).replace(" (*)", "").replace(" (c)", "")
-                      hits[k][dep].add(conf)
-          for k, deps in hits.items():
-              msg = "\n".join(f"{d}  <- {','.join(sorted(c))[:300]}" for d, c in sorted(deps.items())) or "none"
-              print(f"::notice title=deps {k}::" + msg[:3800].replace("%", "%25").replace("\n", "%0A"))
-          PY
-          grep -nE "[Pp]roject '|^[a-zA-Z][A-Za-z0-9]*( - .*)?\$|io\.netty:netty-codec-http:" deps.txt | grep -B4 'netty-codec-http:' | head -60 || true
       - name: Upload Lint Report
         uses: actions/upload-artifact@v7
         if: always()
